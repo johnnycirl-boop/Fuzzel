@@ -1394,74 +1394,120 @@ function spawnConfetti() {
   }
 }
 
-/* ── Leaderboard (localStorage) ── */
-const LB_KEY = 'fuzzle-leaderboard';
+/* ── Leaderboard (Global via API) ── */
 let lastSavedId = null;
+let cachedBoard = [];
 
-function getLeaderboard() {
+async function fetchLeaderboard() {
   try {
-    const data = JSON.parse(localStorage.getItem(LB_KEY) || '[]');
-    return data.sort((a, b) => b.score - a.score).slice(0, 10);
-  } catch { return []; }
+    const res = await fetch('/api/leaderboard');
+    if (!res.ok) throw new Error('Failed to fetch');
+    cachedBoard = await res.json();
+    return cachedBoard;
+  } catch {
+    return cachedBoard;
+  }
 }
 
-function saveToLeaderboard(name, sc, diff) {
-  const board = getLeaderboard();
-  const entry = { id: Date.now(), name, score: sc, difficulty: diff, date: new Date().toLocaleDateString() };
-  board.push(entry);
-  board.sort((a, b) => b.score - a.score);
-  const top10 = board.slice(0, 10);
-  localStorage.setItem(LB_KEY, JSON.stringify(top10));
-  return entry.id;
+async function saveToLeaderboard(name, sc, diff) {
+  try {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: sc, difficulty: diff })
+    });
+    if (!res.ok) throw new Error('Failed to save');
+    const entry = await res.json();
+    return entry.id;
+  } catch {
+    return null;
+  }
 }
 
-function renderLeaderboardTable(container, highlightId) {
-  const board = getLeaderboard();
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderLeaderboardTable(container, board, highlightId) {
   if (board.length === 0) {
-    container.innerHTML = '<div class="lb-empty">No scores yet. Be the first!</div>';
+    container.textContent = '';
+    const empty = document.createElement('div');
+    empty.className = 'lb-empty';
+    empty.textContent = 'No scores yet. Be the first!';
+    container.appendChild(empty);
     return;
   }
 
-  const rankIcons = ['&#129351;', '&#129352;', '&#129353;']; // gold, silver, bronze medals
+  const rankIcons = ['\u{1F947}', '\u{1F948}', '\u{1F949}'];
   const rankClasses = ['rank-gold', 'rank-silver', 'rank-bronze'];
 
-  let html = '<table class="lb-table"><thead><tr>';
-  html += '<th>#</th><th>Name</th><th>Difficulty</th><th style="text-align:right">Score</th><th style="text-align:right">Date</th>';
-  html += '</tr></thead><tbody>';
+  const table = document.createElement('table');
+  table.className = 'lb-table';
 
-  board.forEach((entry, i) => {
-    const isCurrent = entry.id === highlightId;
-    const rowClass = isCurrent ? ' class="current-player"' : '';
-    const rank = i < 3 ? `<span class="${rankClasses[i]}">${rankIcons[i]}</span>` : (i + 1);
-    html += `<tr${rowClass}>`;
-    html += `<td class="rank-cell">${rank}</td>`;
-    html += `<td>${entry.name}</td>`;
-    html += `<td class="diff-cell">${entry.difficulty}</td>`;
-    html += `<td class="score-cell">${entry.score}</td>`;
-    html += `<td class="date-cell">${entry.date}</td>`;
-    html += '</tr>';
+  const thead = table.createTHead();
+  const hRow = thead.insertRow();
+  ['#', 'Name', 'Difficulty', 'Score', 'Date'].forEach((t, i) => {
+    const th = document.createElement('th');
+    th.textContent = t;
+    if (i >= 3) th.style.textAlign = 'right';
+    hRow.appendChild(th);
   });
 
-  html += '</tbody></table>';
-  container.innerHTML = html;
+  const tbody = table.createTBody();
+  board.forEach((entry, i) => {
+    const row = tbody.insertRow();
+    if (entry.id === highlightId) row.className = 'current-player';
+
+    const rankCell = row.insertCell();
+    rankCell.className = 'rank-cell';
+    if (i < 3) {
+      const span = document.createElement('span');
+      span.className = rankClasses[i];
+      span.textContent = rankIcons[i];
+      rankCell.appendChild(span);
+    } else {
+      rankCell.textContent = i + 1;
+    }
+
+    row.insertCell().textContent = entry.name;
+    const diffCell = row.insertCell();
+    diffCell.className = 'diff-cell';
+    diffCell.textContent = entry.difficulty;
+    const scoreCell = row.insertCell();
+    scoreCell.className = 'score-cell';
+    scoreCell.textContent = entry.score;
+    const dateCell = row.insertCell();
+    dateCell.className = 'date-cell';
+    dateCell.textContent = new Date(entry.created_at).toLocaleDateString();
+  });
+
+  container.textContent = '';
+  container.appendChild(table);
 }
 
-function saveScore() {
+async function saveScore() {
   const input = document.getElementById('goNameInput');
-  const name = input.value.trim() || 'Player';
+  let name = input.value.trim() || 'Player';
   if (name.length > 12) name = name.slice(0, 12);
 
-  lastSavedId = saveToLeaderboard(name, score, difficulty);
-
   document.getElementById('goNameEntry').style.display = 'none';
-  document.getElementById('goSavedMsg').textContent = `Score saved, ${name}!`;
+  document.getElementById('goSavedMsg').textContent = 'Saving...';
 
-  renderLeaderboardTable(document.getElementById('goLeaderboard'), lastSavedId);
+  lastSavedId = await saveToLeaderboard(name, score, difficulty);
+  document.getElementById('goSavedMsg').textContent = lastSavedId ? `Score saved, ${name}!` : 'Could not save score.';
+
+  const board = await fetchLeaderboard();
+  renderLeaderboardTable(document.getElementById('goLeaderboard'), board, lastSavedId);
 }
 
-function showLeaderboard() {
-  renderLeaderboardTable(document.getElementById('lbModalContent'), lastSavedId);
+async function showLeaderboard() {
   document.getElementById('lbOverlay').classList.add('show');
+  const loadingEl = document.getElementById('lbModalContent');
+  loadingEl.textContent = 'Loading...';
+  const board = await fetchLeaderboard();
+  renderLeaderboardTable(loadingEl, board, lastSavedId);
 }
 
 function hideLeaderboard() {
