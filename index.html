@@ -659,6 +659,43 @@
 
   .go-name-input:focus { border-color: #50fa7b; }
 
+  .go-name-chips-label {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #8be9fd;
+    margin-bottom: 2px;
+  }
+  .go-name-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 6px;
+  }
+  .go-name-chip {
+    background: rgba(139,233,253,0.12);
+    border: 1px solid rgba(139,233,253,0.3);
+    color: #f8f8f2;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .go-name-chip:hover {
+    background: rgba(139,233,253,0.25);
+    border-color: #8be9fd;
+    transform: translateY(-1px);
+  }
+  .go-name-chip.selected {
+    background: rgba(80,250,123,0.2);
+    border-color: #50fa7b;
+    color: #50fa7b;
+  }
+
   .btn-save-score {
     background: linear-gradient(135deg, #f1fa8c, #ffb86c);
     color: #1a1a2e;
@@ -865,6 +902,8 @@
   <div class="final-details" id="goDetails"></div>
 
   <div class="go-name-entry" id="goNameEntry">
+    <div class="go-name-chips-label" id="goNameChipsLabel" style="display:none">Already on the board? Tap your name:</div>
+    <div class="go-name-chips" id="goNameChips"></div>
     <input class="go-name-input" id="goNameInput" placeholder="Your name..." maxlength="12" autocomplete="off" spellcheck="false">
     <button class="btn-save-score" onclick="saveScore()">Save Score</button>
   </div>
@@ -1443,11 +1482,33 @@ function endGame() {
     document.getElementById('goNameEntry').style.display = 'flex';
     document.getElementById('goNameInput').value = '';
     document.getElementById('goSavedMsg').textContent = '';
-    document.getElementById('goLeaderboard').innerHTML = '';
+    document.getElementById('goLeaderboard').textContent = '';
+    document.getElementById('goNameChips').textContent = '';
+    document.getElementById('goNameChipsLabel').style.display = 'none';
     lastSavedId = null;
 
     document.getElementById('gameOver').classList.add('show');
     setTimeout(() => document.getElementById('goNameInput').focus(), 400);
+
+    // Fetch leaderboard names and show as tappable chips
+    fetchLeaderboard().then(board => {
+      const uniqueNames = [...new Set(board.map(e => e.name))];
+      if (uniqueNames.length === 0) return;
+      const chipsEl = document.getElementById('goNameChips');
+      document.getElementById('goNameChipsLabel').style.display = 'block';
+      uniqueNames.forEach(name => {
+        const chip = document.createElement('button');
+        chip.className = 'go-name-chip';
+        chip.textContent = name;
+        chip.type = 'button';
+        chip.onclick = () => {
+          document.getElementById('goNameInput').value = name;
+          chipsEl.querySelectorAll('.go-name-chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+        };
+        chipsEl.appendChild(chip);
+      });
+    });
   }, 1200);
 }
 
