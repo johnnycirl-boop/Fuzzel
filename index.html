@@ -1563,8 +1563,7 @@ async function saveToLeaderboard(name, sc, diff) {
       body: JSON.stringify({ name, score: sc, difficulty: diff })
     });
     if (!res.ok) throw new Error('Failed to save');
-    const entry = await res.json();
-    return entry.id;
+    return await res.json();
   } catch {
     return null;
   }
@@ -1641,8 +1640,15 @@ async function saveScore() {
   document.getElementById('goNameEntry').style.display = 'none';
   document.getElementById('goSavedMsg').textContent = 'Saving...';
 
-  lastSavedId = await saveToLeaderboard(name, score, difficulty);
-  document.getElementById('goSavedMsg').textContent = lastSavedId ? `Score saved, ${name}!` : 'Could not save score.';
+  const saved = await saveToLeaderboard(name, score, difficulty);
+  lastSavedId = saved ? saved.id : null;
+  if (!saved) {
+    document.getElementById('goSavedMsg').textContent = 'Could not save score.';
+  } else if (saved.score > score) {
+    document.getElementById('goSavedMsg').textContent = `Your best is ${saved.score}, ${name}!`;
+  } else {
+    document.getElementById('goSavedMsg').textContent = `Score saved, ${name}!`;
+  }
 
   const board = await fetchLeaderboard();
   renderLeaderboardTable(document.getElementById('goLeaderboard'), board, lastSavedId);
