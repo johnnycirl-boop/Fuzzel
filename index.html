@@ -111,7 +111,7 @@
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 20px;
-    padding: 40px 24px;
+    padding: 0;
     text-align: center;
     text-decoration: none;
     color: #fff;
@@ -120,7 +120,23 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    overflow: hidden;
+  }
+
+  .tile-screenshot {
+    width: 100%;
+    aspect-ratio: 16/10;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .tile-info {
+    padding: 16px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
 
   .tile:hover {
@@ -223,7 +239,7 @@
   @media (max-width: 500px) {
     .tiles { grid-template-columns: 1fr; gap: 16px; }
     .hero-logo { width: 360px; }
-    .tile { padding: 30px 20px; }
+    .tile { padding: 0; }
   }
 </style>
 </head>
@@ -251,14 +267,18 @@
 
   <div class="tiles">
     <a href="fuzzel.html" class="tile tile-fuzzel">
-      <div class="tile-icon">🧩</div>
-      <div class="tile-name">Fuzzle</div>
-      <div class="tile-desc">Decode the clue, crack the word!</div>
+      <img src="tile-fuzzel.png" alt="Fuzzle gameplay" class="tile-screenshot">
+      <div class="tile-info">
+        <div class="tile-name">Fuzzle</div>
+        <div class="tile-desc">Decode the clue, crack the word!</div>
+      </div>
     </a>
     <a href="battleship.html" class="tile tile-battleship">
-      <div class="tile-icon">🏴‍☠️</div>
-      <div class="tile-name">Battleship</div>
-      <div class="tile-desc">Pirates vs Navy &mdash; sink the fleet!</div>
+      <img src="tile-battleship.png" alt="Battleship gameplay" class="tile-screenshot">
+      <div class="tile-info">
+        <div class="tile-name">Daphlship</div>
+        <div class="tile-desc">Pirates vs Navy &mdash; sink the fleet!</div>
+      </div>
     </a>
   </div>
 </div>

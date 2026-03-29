@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Battleship: Pirates vs Navy</title>
+<title>Daphlship: Pirates vs Navy</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 .back-btn {
@@ -432,7 +432,7 @@ function buildSetupGrid(wrapperId,gridId,gridClass,isPirate){
       if(isPirate){
         cell.addEventListener('click',()=>onPirateCellClick(rr,cc));
         cell.addEventListener('mouseenter',()=>onPirateCellHover(rr,cc));
-        cell.addEventListener('mouseleave',clearGhosts);
+        cell.addEventListener('mouseleave',()=>{lastHoverR=-1;lastHoverC=-1;clearGhosts();});
       }
       grid.appendChild(cell);
     }
@@ -471,6 +471,7 @@ function canPlace(board,cells){
 
 function onPirateCellHover(r,c){
   if(gamePhase!=='setup'||currentShipIndex>=PIRATE_SHIPS.length) return;
+  lastHoverR=r; lastHoverC=c;
   clearGhosts();
   const ship=PIRATE_SHIPS[currentShipIndex];
   const cells=getPlacementCells(r,c,ship.size,orientation);
@@ -515,10 +516,45 @@ function onPirateCellClick(r,c){
   clearGhosts(); updatePlacementUI(); updateFleetStatusSetup();
 }
 
+let lastHoverR=-1, lastHoverC=-1;
 function rotateShip(){
+  // If there's a previously placed ship, rotate it in place
+  if(pirateShipCells.length>0){
+    const lastIdx=pirateShipCells.length-1;
+    const lastShip=pirateShipCells[lastIdx];
+    const oldCells=lastShip.cells;
+    const startR=oldCells[0][0], startC=oldCells[0][1];
+    const size=oldCells.length;
+    // Detect current orientation of the placed ship
+    const isHoriz=size>1&&oldCells[1][1]!==oldCells[0][1];
+    const newOrient=isHoriz?'v':'h';
+    const newCells=getPlacementCells(startR,startC,size,newOrient);
+    // Temporarily remove the ship from the board to check placement
+    const boardIdx=pirateBoard[startR][startC];
+    oldCells.forEach(([rr,cc])=>{ pirateBoard[rr][cc]=0; });
+    if(newCells&&canPlace(pirateBoard,newCells)){
+      // Remove old visuals
+      oldCells.forEach(([rr,cc])=>{
+        const el=getCell('pirateGrid',rr,cc);
+        if(el) el.classList.remove('ship-segment');
+      });
+      // Place rotated
+      newCells.forEach(([rr,cc])=>{
+        pirateBoard[rr][cc]=boardIdx;
+        const el=getCell('pirateGrid',rr,cc);
+        if(el) el.classList.add('ship-segment');
+      });
+      pirateShipCells[lastIdx].cells=newCells;
+    } else {
+      // Can't rotate — put it back
+      oldCells.forEach(([rr,cc])=>{ pirateBoard[rr][cc]=boardIdx; });
+    }
+  }
+  // Also toggle orientation for the next ship to place
   orientation=orientation==='h'?'v':'h';
   document.getElementById('orientationLabel').textContent=orientation==='h'?'Horizontal':'Vertical';
   clearGhosts();
+  if(lastHoverR>=0&&lastHoverC>=0) onPirateCellHover(lastHoverR,lastHoverC);
 }
 document.addEventListener('keydown',e=>{
   if((e.key==='r'||e.key==='R')&&gamePhase==='setup') rotateShip();
