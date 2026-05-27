@@ -60,10 +60,32 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'score must be a number' });
       }
 
-      const result = await client.query(
-        'INSERT INTO fuzzle_leaderboard (name, score, difficulty) VALUES ($1, $2, $3) RETURNING id, name, score, difficulty, created_at',
-        [safeName, safeScore, safeDiff]
+      // Check if this name already has a score on the same difficulty
+      const existing = await client.query(
+        'SELECT id, score FROM fuzzle_leaderboard WHERE LOWER(name) = LOWER($1) AND LOWER(difficulty) = LOWER($2)',
+        [safeName, safeDiff]
       );
+
+      let result;
+      if (existing.rows.length > 0 && safeScore > existing.rows[0].score) {
+        // Update to the higher score
+        result = await client.query(
+          'UPDATE fuzzle_leaderboard SET score = $1, created_at = NOW() WHERE id = $2 RETURNING id, name, score, difficulty, created_at',
+          [safeScore, existing.rows[0].id]
+        );
+      } else if (existing.rows.length > 0) {
+        // Existing score is higher or equal — return the existing entry unchanged
+        result = await client.query(
+          'SELECT id, name, score, difficulty, created_at FROM fuzzle_leaderboard WHERE id = $1',
+          [existing.rows[0].id]
+        );
+      } else {
+        // New name/difficulty combo — insert
+        result = await client.query(
+          'INSERT INTO fuzzle_leaderboard (name, score, difficulty) VALUES ($1, $2, $3) RETURNING id, name, score, difficulty, created_at',
+          [safeName, safeScore, safeDiff]
+        );
+      }
 
       return res.json(result.rows[0]);
     }
