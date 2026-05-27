@@ -551,6 +551,21 @@
 
   .btn-trophy:hover { background: rgba(241,250,140,0.15); transform: translateY(-1px); }
 
+  /* ── More Games section ── */
+  .more-games { width: 100%; margin-top: 30px; text-align: center; }
+  .more-games h3 { font-size: 1.3rem; color: #c3a6ff; margin-bottom: 14px; }
+  .game-cards { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+  .game-card {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 160px; height: 160px; border-radius: 16px; text-decoration: none; color: #fff;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(6px); transition: transform .2s, background .2s; cursor: pointer;
+  }
+  .game-card:hover { transform: translateY(-4px); background: rgba(255,255,255,.12); }
+  .game-card-icon { font-size: 48px; margin-bottom: 8px; }
+  .game-card-title { font-size: 16px; font-weight: 700; }
+  .game-card-desc { font-size: 11px; opacity: .6; margin-top: 4px; }
+
   /* ── Leaderboard modal ── */
   .lb-overlay {
     display: none;
@@ -874,6 +889,20 @@
 
   <button class="btn-restart" onclick="restartGame()">Play Again</button>
 </div>
+
+<!-- More Games -->
+<div class="more-games">
+  <h3>More Games</h3>
+  <div class="game-cards">
+    <a class="game-card" href="caravan.html">
+      <div class="game-card-icon">🚗</div>
+      <div class="game-card-title">Road Rage</div>
+      <div class="game-card-desc">Dodge the traffic!</div>
+    </a>
+  </div>
+</div>
+
+<!-- end game-container -->
 
 <!-- Leaderboard modal (viewable anytime) -->
 <div class="lb-overlay" id="lbOverlay">
