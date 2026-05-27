@@ -23,6 +23,14 @@ async function ensureTable(client) {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+  await client.query(`
+    ALTER TABLE fuzzle_leaderboard
+      ADD COLUMN IF NOT EXISTS game VARCHAR(20) NOT NULL DEFAULT 'fuzzle'
+  `);
+  await client.query(`
+    CREATE INDEX IF NOT EXISTS idx_fuzzle_leaderboard_game_score
+      ON fuzzle_leaderboard (game, score DESC)
+  `);
 }
 
 module.exports = async (req, res) => {
@@ -39,14 +47,20 @@ module.exports = async (req, res) => {
     await ensureTable(client);
 
     if (req.method === 'GET') {
-      const result = await client.query(
-        'SELECT id, name, score, difficulty, created_at FROM fuzzle_leaderboard ORDER BY score DESC LIMIT 10'
-      );
+      const game = req.query && req.query.game ? String(req.query.game).slice(0, 20) : null;
+      const result = game
+        ? await client.query(
+            'SELECT id, name, score, difficulty, game, created_at FROM fuzzle_leaderboard WHERE LOWER(game) = LOWER($1) ORDER BY score DESC LIMIT 10',
+            [game]
+          )
+        : await client.query(
+            'SELECT id, name, score, difficulty, game, created_at FROM fuzzle_leaderboard ORDER BY score DESC LIMIT 10'
+          );
       return res.json(result.rows);
     }
 
     if (req.method === 'POST') {
-      const { name, score, difficulty } = req.body;
+      const { name, score, difficulty, game } = req.body;
 
       if (!name || score == null || !difficulty) {
         return res.status(400).json({ error: 'name, score, and difficulty are required' });
@@ -55,35 +69,33 @@ module.exports = async (req, res) => {
       const safeName = String(name).slice(0, 12);
       const safeScore = parseInt(score, 10);
       const safeDiff = String(difficulty).slice(0, 20);
+      const safeGame = String(game || 'fuzzle').slice(0, 20);
 
       if (isNaN(safeScore)) {
         return res.status(400).json({ error: 'score must be a number' });
       }
 
-      // Check if this name already has a score on the same difficulty
+      // Check if this name already has a score for the same game + difficulty
       const existing = await client.query(
-        'SELECT id, score FROM fuzzle_leaderboard WHERE LOWER(name) = LOWER($1) AND LOWER(difficulty) = LOWER($2)',
-        [safeName, safeDiff]
+        'SELECT id, score FROM fuzzle_leaderboard WHERE LOWER(name) = LOWER($1) AND LOWER(difficulty) = LOWER($2) AND LOWER(game) = LOWER($3)',
+        [safeName, safeDiff, safeGame]
       );
 
       let result;
       if (existing.rows.length > 0 && safeScore > existing.rows[0].score) {
-        // Update to the higher score
         result = await client.query(
-          'UPDATE fuzzle_leaderboard SET score = $1, created_at = NOW() WHERE id = $2 RETURNING id, name, score, difficulty, created_at',
+          'UPDATE fuzzle_leaderboard SET score = $1, created_at = NOW() WHERE id = $2 RETURNING id, name, score, difficulty, game, created_at',
           [safeScore, existing.rows[0].id]
         );
       } else if (existing.rows.length > 0) {
-        // Existing score is higher or equal — return the existing entry unchanged
         result = await client.query(
-          'SELECT id, name, score, difficulty, created_at FROM fuzzle_leaderboard WHERE id = $1',
+          'SELECT id, name, score, difficulty, game, created_at FROM fuzzle_leaderboard WHERE id = $1',
           [existing.rows[0].id]
         );
       } else {
-        // New name/difficulty combo — insert
         result = await client.query(
-          'INSERT INTO fuzzle_leaderboard (name, score, difficulty) VALUES ($1, $2, $3) RETURNING id, name, score, difficulty, created_at',
-          [safeName, safeScore, safeDiff]
+          'INSERT INTO fuzzle_leaderboard (name, score, difficulty, game) VALUES ($1, $2, $3, $4) RETURNING id, name, score, difficulty, game, created_at',
+          [safeName, safeScore, safeDiff, safeGame]
         );
       }
 
