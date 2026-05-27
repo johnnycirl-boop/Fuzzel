@@ -60,7 +60,8 @@ canvas{display:block;margin:0 auto}
     <div class="hud-item"><span class="hud-label">LEVEL</span><span class="hud-val" id="h-level">1</span></div>
   </div>
   <div class="right">
-    <div class="hud-item"><span id="gun-icon">🔫</span><div id="ammo-bar"><div id="ammo-fill" style="width:0%"></div></div></div>
+    <div class="hud-item"><span id="gun-icon">🔫</span><span id="gun-tier" style="font-size:12px;opacity:.6"></span><div id="ammo-bar"><div id="ammo-fill" style="width:0%"></div></div></div>
+    <div class="hud-item"><span id="x2-badge" style="font-size:14px;font-weight:900;color:#ffd93d;opacity:0;transition:opacity .2s">x2</span></div>
     <div class="hud-item"><span class="hud-label">LIVES</span><span class="hud-val" id="h-lives">❤❤❤</span></div>
   </div>
 </div>
@@ -148,7 +149,7 @@ function newState() {
     score: 0,
     level: 1,
     lives: 3,
-    gun: { active: false, ammo: 0, maxAmmo: 30, cooldown: 0 },
+    gun: { active: false, tier: 0, ammo: 0, maxAmmo: 30, cooldown: 0 },
     spawnTimer: 0,
     spawnInterval: 60,
     enemySpeed: 3,
@@ -347,14 +348,23 @@ function update() {
   // Immunity timer
   if (s.player.immune > 0) s.player.immune--;
 
-  // Shooting
+  // Shooting — tier controls spread: 1=2 bullets, 2=3 bullets, 3=5 bullets
   if (s.gun.cooldown > 0) s.gun.cooldown--;
   if ((keys['Space'] || keys['touchFire']) && s.gun.active && s.gun.ammo > 0 && s.gun.cooldown <= 0) {
-    s.bullets.push({ x: s.player.x - 8, y: s.player.y - s.player.h / 2 });
-    s.bullets.push({ x: s.player.x + 8, y: s.player.y - s.player.h / 2 });
+    const tier = s.gun.tier;
+    const py = s.player.y - s.player.h / 2;
+    s.bullets.push({ x: s.player.x - 8, y: py });
+    s.bullets.push({ x: s.player.x + 8, y: py });
+    if (tier >= 2) {
+      s.bullets.push({ x: s.player.x, y: py - 6 });
+    }
+    if (tier >= 3) {
+      s.bullets.push({ x: s.player.x - 16, y: py + 4 });
+      s.bullets.push({ x: s.player.x + 16, y: py + 4 });
+    }
     s.gun.ammo--;
-    s.gun.cooldown = 6;
-    if (s.gun.ammo <= 0) s.gun.active = false;
+    s.gun.cooldown = tier >= 3 ? 4 : tier >= 2 ? 5 : 6;
+    if (s.gun.ammo <= 0) { s.gun.active = false; s.gun.tier = 0; }
   }
 
   // Bullets
@@ -387,7 +397,7 @@ function update() {
     e.y += e.speed;
     if (e.y > canvas.height + 80) {
       s.enemies.splice(i, 1);
-      s.score += 10;
+      s.score += s.gun.active ? 20 : 10;
       continue;
     }
     // Bullet collision
@@ -398,7 +408,7 @@ function update() {
         s.bullets.splice(j, 1);
         s.enemies.splice(i, 1);
         spawnExplosion(e.x, e.y, 20, true);
-        s.score += 50;
+        s.score += s.gun.active ? 100 : 50;
         destroyed = true;
         break;
       }
@@ -410,6 +420,9 @@ function update() {
         Math.abs(s.player.y - e.y) < (s.player.h + e.h) / 2 - 6) {
       s.lives--;
       s.player.immune = 90;
+      s.gun.active = false;
+      s.gun.tier = 0;
+      s.gun.ammo = 0;
       spawnExplosion(e.x, e.y, 25, false);
       s.enemies.splice(i, 1);
       if (s.lives <= 0) {
@@ -436,6 +449,7 @@ function update() {
     if (Math.abs(s.player.x - p.x) < s.player.w / 2 + POWERUP_R &&
         Math.abs(s.player.y - p.y) < s.player.h / 2 + POWERUP_R) {
       s.powerups.splice(i, 1);
+      s.gun.tier = Math.min(3, s.gun.tier + 1);
       s.gun.active = true;
       s.gun.ammo = s.gun.maxAmmo;
       spawnCollectEffect(p.x, p.y);
@@ -467,6 +481,8 @@ function update() {
   document.getElementById('h-level').textContent = s.level;
   document.getElementById('h-lives').textContent = '❤'.repeat(Math.max(0, s.lives));
   document.getElementById('ammo-fill').style.width = (s.gun.active ? (s.gun.ammo / s.gun.maxAmmo * 100) : 0) + '%';
+  document.getElementById('gun-tier').textContent = s.gun.tier > 0 ? 'T' + s.gun.tier : '';
+  document.getElementById('x2-badge').style.opacity = s.gun.active ? 1 : 0;
   document.getElementById('gun-icon').className = s.gun.active ? 'active' : '';
 }
 
