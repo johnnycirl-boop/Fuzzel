@@ -31,6 +31,10 @@ canvas{display:block;margin:0 auto}
 .btn:hover{transform:scale(1.05);box-shadow:0 6px 28px rgba(238,90,36,.6)}
 .controls-hint{margin-top:20px;opacity:.5;font-size:13px}
 
+/* ── Back button ── */
+#back-btn{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:25;padding:8px 20px;font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;color:#fff;background:rgba(255,255,255,.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);transition:background .2s;text-decoration:none;pointer-events:all}
+#back-btn:hover{background:rgba(255,255,255,.22)}
+
 /* ── Level banner ── */
 #level-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:15;font-size:clamp(36px,7vw,64px);font-weight:900;color:#ffd93d;text-shadow:0 0 30px rgba(255,217,61,.6);pointer-events:none;transition:transform .3s ease-out,opacity .3s}
 #level-banner.show{transform:translate(-50%,-50%) scale(1);opacity:1}
@@ -45,6 +49,9 @@ canvas{display:block;margin:0 auto}
 </style>
 </head>
 <body>
+
+<!-- Back button -->
+<a id="back-btn" href="index.html">← Back to Fuzzle</a>
 
 <!-- HUD -->
 <div id="hud">
@@ -132,7 +139,7 @@ let state, keys = {}, highScore = parseInt(localStorage.getItem('caravan-hs') ||
 function newState() {
   return {
     running: false,
-    player: { x: 0, y: 0, w: CAR_W, h: CAR_H, speed: 5, immune: 0 },
+    player: { x: 0, y: 0, w: CAR_W, h: CAR_H, lane: 1, targetX: 0, immune: 0 },
     enemies: [],
     bullets: [],
     powerups: [],
@@ -325,13 +332,17 @@ function update() {
   // Road scroll
   s.roadOffset = (s.roadOffset + s.enemySpeed) % 50;
 
-  // Player movement
-  const roadW = canvas.width * 0.8;
-  const roadL = (canvas.width - roadW) / 2;
-  const pSpeed = s.player.speed + s.level * 0.3;
-  if (keys['ArrowLeft'] || keys['KeyA'] || keys['touchLeft']) s.player.x -= pSpeed;
-  if (keys['ArrowRight'] || keys['KeyD'] || keys['touchRight']) s.player.x += pSpeed;
-  s.player.x = Math.max(roadL + s.player.w / 2 + 4, Math.min(roadL + roadW - s.player.w / 2 - 4, s.player.x));
+  // Player lane movement
+  if (!s._prevLeft && (keys['ArrowLeft'] || keys['KeyA'] || keys['touchLeft'])) {
+    if (s.player.lane > 0) s.player.lane--;
+  }
+  if (!s._prevRight && (keys['ArrowRight'] || keys['KeyD'] || keys['touchRight'])) {
+    if (s.player.lane < LANE_COUNT - 1) s.player.lane++;
+  }
+  s._prevLeft = !!(keys['ArrowLeft'] || keys['KeyA'] || keys['touchLeft']);
+  s._prevRight = !!(keys['ArrowRight'] || keys['KeyD'] || keys['touchRight']);
+  s.player.targetX = laneX(s.player.lane);
+  s.player.x += (s.player.targetX - s.player.x) * 0.25;
 
   // Immunity timer
   if (s.player.immune > 0) s.player.immune--;
@@ -501,7 +512,9 @@ function loop() {
 function startGame() {
   state = newState();
   state.running = true;
-  state.player.x = canvas.width / 2;
+  state.player.lane = 1;
+  state.player.x = laneX(1);
+  state.player.targetX = laneX(1);
   state.player.y = canvas.height - 120;
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('gameover-screen').classList.add('hidden');
