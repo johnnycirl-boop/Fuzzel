@@ -163,6 +163,17 @@
 
   .tile-fuzzel:hover { border-color: #bd93f9; box-shadow: 0 12px 40px rgba(189,147,249,0.15); }
   .tile-battleship:hover { border-color: #d4a843; box-shadow: 0 12px 40px rgba(212,168,67,0.15); }
+  .tile-roadrage:hover { border-color: #ff5555; box-shadow: 0 12px 40px rgba(255,85,85,0.15); }
+
+  .tile-icon-wrap {
+    width: 100%;
+    aspect-ratio: 16/10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #2a1a3a 0%, #3a1a2a 100%);
+    border-radius: 20px 20px 0 0;
+  }
 
   /* Welcome Modal */
   .welcome-overlay {
@@ -278,6 +289,13 @@
       <div class="tile-info">
         <div class="tile-name">Daphlship</div>
         <div class="tile-desc">Pirates vs Navy &mdash; sink the fleet!</div>
+      </div>
+    </a>
+    <a href="roadrage.html" class="tile tile-roadrage">
+      <div class="tile-icon-wrap"><span class="tile-icon">🚗</span></div>
+      <div class="tile-info">
+        <div class="tile-name">Road Rage</div>
+        <div class="tile-desc">Dodge the traffic &mdash; don't crash!</div>
       </div>
     </a>
   </div>
