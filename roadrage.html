@@ -21,15 +21,61 @@ canvas{display:block;margin:0 auto}
 #gun-icon.active{opacity:1}
 
 /* ── Screens ── */
-.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,30,.92);backdrop-filter:blur(8px);color:#fff;text-align:center;transition:opacity .3s}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,30,.92);backdrop-filter:blur(8px);color:#fff;text-align:center;transition:opacity .3s;overflow:hidden}
 .overlay.hidden{opacity:0;pointer-events:none}
-.overlay h1{font-size:clamp(32px,6vw,56px);margin-bottom:12px}
-.overlay h2{font-size:clamp(20px,4vw,32px);margin-bottom:8px;color:#ffd93d}
-.overlay p{font-size:clamp(14px,2.5vw,18px);opacity:.8;max-width:400px;line-height:1.5;margin-bottom:6px}
-.overlay .subtitle{font-size:clamp(16px,3vw,22px);color:#8be9fd;margin-bottom:20px}
-.btn{display:inline-block;padding:14px 40px;font-size:20px;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff6b6b,#ee5a24);box-shadow:0 4px 20px rgba(238,90,36,.4);transition:transform .15s,box-shadow .15s;margin-top:16px;pointer-events:all}
+.overlay h1{font-size:clamp(36px,7vw,64px);margin-bottom:12px;position:relative;z-index:2}
+.overlay h2{font-size:clamp(20px,4vw,32px);margin-bottom:8px;color:#ffd93d;position:relative;z-index:2}
+.overlay p{font-size:clamp(14px,2.5vw,18px);opacity:.85;max-width:400px;line-height:1.5;margin-bottom:6px;position:relative;z-index:2}
+.overlay .subtitle{font-size:clamp(16px,3vw,22px);color:#c3a6ff;font-weight:600;letter-spacing:.5px;margin-bottom:20px;position:relative;z-index:2}
+.btn{display:inline-block;padding:14px 40px;font-size:20px;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff6b6b,#ee5a24);box-shadow:0 4px 20px rgba(238,90,36,.4);transition:transform .15s,box-shadow .15s;margin-top:16px;pointer-events:all;position:relative;z-index:2}
 .btn:hover{transform:scale(1.05);box-shadow:0 6px 28px rgba(238,90,36,.6)}
-.controls-hint{margin-top:20px;opacity:.5;font-size:13px}
+.controls-hint{margin-top:20px;opacity:.5;font-size:13px;position:relative;z-index:2}
+
+/* ── Fuzzel.ie-style animated background (start screen only) ── */
+#start-screen{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%);backdrop-filter:none}
+#start-screen .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;animation:floatBlob 20s ease-in-out infinite;z-index:0}
+#start-screen .blob-1{width:500px;height:500px;background:radial-gradient(circle,#ff79c6,#bd93f9);top:-10%;left:-5%}
+#start-screen .blob-2{width:400px;height:400px;background:radial-gradient(circle,#8be9fd,#50fa7b);top:50%;right:-8%;animation-delay:-7s}
+#start-screen .blob-3{width:350px;height:350px;background:radial-gradient(circle,#f1fa8c,#ffb86c);bottom:-5%;left:20%;animation-delay:-14s}
+@keyframes floatBlob{
+  0%,100%{transform:translate(0,0) scale(1)}
+  25%{transform:translate(30px,-40px) scale(1.1)}
+  50%{transform:translate(-20px,20px) scale(.95)}
+  75%{transform:translate(15px,35px) scale(1.05)}
+}
+#start-screen h1{
+  font-weight:900;
+  letter-spacing:1px;
+  display:inline-flex;
+  align-items:center;
+  gap:14px;
+  justify-content:center;
+}
+#start-screen h1 .emoji{
+  filter:drop-shadow(0 0 12px rgba(255,217,61,.5));
+}
+#start-screen h1 .rr-title{
+  background:linear-gradient(90deg,#ff79c6,#f1fa8c,#50fa7b,#8be9fd,#bd93f9);
+  background-size:400% 400%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:shimmer 5s ease infinite;
+}
+@keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#start-screen .info-card{
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;
+  padding:18px 22px;
+  margin:8px 0 4px;
+  max-width:420px;
+  position:relative;
+  z-index:2;
+}
+#start-screen .info-card p{margin:0;font-size:clamp(13px,2.4vw,16px);line-height:1.6;opacity:.9}
+#start-screen .info-card b{color:#f1fa8c}
 
 /* ── Back button ── */
 #back-btn{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:25;padding:8px 20px;font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;color:#fff;background:rgba(255,255,255,.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);transition:background .2s;text-decoration:none;pointer-events:all}
@@ -71,10 +117,17 @@ canvas{display:block;margin:0 auto}
 
 <!-- Start screen -->
 <div class="overlay" id="start-screen">
-  <h1>🚗 ROAD RAGE</h1>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <h1><span class="emoji">🚗</span><span class="rr-title">ROAD RAGE</span></h1>
   <p class="subtitle">Dodge the Traffic!</p>
-  <p>Weave your car through oncoming traffic, collect power-ups, and blast your way through with the machine gun!</p>
-  <p style="margin-top:12px"><b>Arrow keys / A D</b> — move left & right<br><b>Space</b> — fire machine gun<br><b>⭐ Gold balls</b> — unlock the gun!</p>
+  <div class="info-card">
+    <p>Weave through oncoming traffic, collect power-ups, and blast your way through with the machine gun!</p>
+  </div>
+  <div class="info-card">
+    <p><b>Arrow keys / A D</b> — move left &amp; right<br><b>Space</b> — fire machine gun<br><b>⭐ Gold balls</b> — unlock the gun!</p>
+  </div>
   <button class="btn" onclick="startGame()">DRIVE!</button>
   <p class="controls-hint">Touch controls on mobile</p>
 </div>

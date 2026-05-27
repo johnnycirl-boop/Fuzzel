@@ -165,14 +165,87 @@
   .tile-battleship:hover { border-color: #d4a843; box-shadow: 0 12px 40px rgba(212,168,67,0.15); }
   .tile-roadrage:hover { border-color: #ff5555; box-shadow: 0 12px 40px rgba(255,85,85,0.15); }
 
-  .tile-icon-wrap {
+  /* Road Rage CSS-illustrated tile */
+  .rr-art {
     width: 100%;
     aspect-ratio: 16/10;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: linear-gradient(135deg, #2a1a3a 0%, #3a1a2a 100%);
     border-radius: 20px 20px 0 0;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, #1a1a2e 0%, #2a1a3a 50%, #1a0e26 100%);
+  }
+  .rr-road {
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 22%; right: 22%;
+    background: #1c1c1c;
+    box-shadow:
+      inset 2px 0 0 rgba(255,255,255,0.5),
+      inset -2px 0 0 rgba(255,255,255,0.5);
+  }
+  .rr-lane {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 3px;
+    background-image: linear-gradient(to bottom, #ffe066 0 14px, transparent 14px 30px);
+    background-size: 100% 30px;
+    animation: rr-scroll 0.6s linear infinite;
+  }
+  .rr-lane-l { left: 33.33%; }
+  .rr-lane-r { left: 66.66%; transform: translateX(-3px); }
+  @keyframes rr-scroll {
+    from { background-position-y: 0; }
+    to { background-position-y: 30px; }
+  }
+  .rr-car {
+    position: absolute;
+    width: 16px;
+    height: 26px;
+    border-radius: 4px 4px 3px 3px;
+  }
+  .rr-car::before {
+    content: '';
+    position: absolute;
+    left: 2px; right: 2px;
+    top: 4px;
+    height: 7px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 2px;
+  }
+  .rr-player {
+    bottom: 18%;
+    left: 50%;
+    margin-left: -8px;
+    background: linear-gradient(180deg, #00d2ff 0%, #0099cc 100%);
+    box-shadow: 0 0 14px rgba(0,210,255,0.7), 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 2;
+  }
+  .rr-enemy {
+    animation: rr-traffic 2.2s linear infinite;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .rr-e1 { left: 28%;  background: linear-gradient(180deg, #ff4757, #d63031); animation-delay: 0s; }
+  .rr-e2 { left: 50%;  margin-left: -8px; background: linear-gradient(180deg, #ffa502, #e67e22); animation-delay: 0.9s; }
+  .rr-e3 { left: 64%;  background: linear-gradient(180deg, #e84393, #a83271); animation-delay: 1.6s; }
+  @keyframes rr-traffic {
+    0%   { top: -30px; opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { top: 110%; opacity: 0; }
+  }
+  .rr-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.6rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(255,85,85,0.9), 0 0 24px rgba(255,85,85,0.5);
+    font-family: 'Impact', 'Arial Black', sans-serif;
+    pointer-events: none;
+    opacity: 0.85;
   }
 
   /* Welcome Modal */
@@ -292,7 +365,17 @@
       </div>
     </a>
     <a href="roadrage.html" class="tile tile-roadrage">
-      <div class="tile-icon-wrap"><span class="tile-icon">🚗</span></div>
+      <div class="rr-art">
+        <div class="rr-road">
+          <div class="rr-lane rr-lane-l"></div>
+          <div class="rr-lane rr-lane-r"></div>
+          <div class="rr-car rr-enemy rr-e1"></div>
+          <div class="rr-car rr-enemy rr-e2"></div>
+          <div class="rr-car rr-enemy rr-e3"></div>
+          <div class="rr-car rr-player"></div>
+        </div>
+        <div class="rr-glow">ROAD RAGE</div>
+      </div>
       <div class="tile-info">
         <div class="tile-name">Road Rage</div>
         <div class="tile-desc">Dodge the traffic &mdash; don't crash!</div>
