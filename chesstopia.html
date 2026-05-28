@@ -49,6 +49,29 @@ select.ctrl-btn option{background:#1a1a2e;color:#fff}
 .cell.last-move{box-shadow:inset 0 0 0 3px rgba(255,235,100,.55)}
 .cell.check{background:radial-gradient(circle,rgba(255,0,0,.55),transparent 70%) !important}
 
+/* Per-board piece palettes — each board color gets its own complementary ivory/dark pair */
+body{
+  /* Defaults = wood (classic) */
+  --w-base:#fbf3df; --w-1:#ebdcb0; --w-2:#d8c498; --w-3:#c3ab7d; --w-4:#a8916a; --w-5:#8a7657;
+  --b-base:#2a201a; --b-1:#1a120d; --b-2:#0d0805; --b-3:#050302; --b-4:#000;
+}
+body[data-board="blue"]{
+  --w-base:#f4f8ff; --w-1:#dde7f5; --w-2:#c4d2e8; --w-3:#a3b4cf; --w-4:#7e8fae; --w-5:#5d6e8c;
+  --b-base:#0e2440; --b-1:#08172b; --b-2:#03101c; --b-3:#020a14; --b-4:#000;
+}
+body[data-board="green"]{
+  --w-base:#fbf6e1; --w-1:#ece2b9; --w-2:#d7c891; --w-3:#b8aa76; --w-4:#928665; --w-5:#6e6650;
+  --b-base:#1c2a18; --b-1:#121d0f; --b-2:#091307; --b-3:#050c03; --b-4:#000;
+}
+body[data-board="purple"]{
+  --w-base:#f6efff; --w-1:#e3d4f1; --w-2:#cdb6df; --w-3:#a98fc4; --w-4:#83699e; --w-5:#5e4a78;
+  --b-base:#221432; --b-1:#170c22; --b-2:#0d0716; --b-3:#07040c; --b-4:#000;
+}
+body[data-board="red"]{
+  --w-base:#fcefee; --w-1:#ecd1cf; --w-2:#d8aeac; --w-3:#b58683; --w-4:#8a615e; --w-5:#65423f;
+  --b-base:#3a0e14; --b-1:#270a0e; --b-2:#170509; --b-3:#0a0205; --b-4:#000;
+}
+
 /* 3D pieces — base */
 .cell .piece{
   pointer-events:none;
@@ -72,24 +95,24 @@ select.ctrl-btn option{background:#1a1a2e;color:#fff}
 }
 /* White piece — ivory with cream extrusion */
 .cell.white-piece .piece{
-  color:#fbf3df;
+  color:var(--w-base);
   text-shadow:
-    0 1px 0 #ebdcb0,
-    0 2px 0 #d8c498,
-    0 3px 0 #c3ab7d,
-    0 4px 0 #a8916a,
-    0 5px 0 #8a7657,
+    0 1px 0 var(--w-1),
+    0 2px 0 var(--w-2),
+    0 3px 0 var(--w-3),
+    0 4px 0 var(--w-4),
+    0 5px 0 var(--w-5),
     0 6px 4px rgba(0,0,0,.35),
     0 10px 10px rgba(0,0,0,.4);
 }
 /* Black piece — walnut with dark extrusion */
 .cell.black-piece .piece{
-  color:#2a201a;
+  color:var(--b-base);
   text-shadow:
-    0 1px 0 #1a120d,
-    0 2px 0 #0d0805,
-    0 3px 0 #050302,
-    0 4px 0 #000,
+    0 1px 0 var(--b-1),
+    0 2px 0 var(--b-2),
+    0 3px 0 var(--b-3),
+    0 4px 0 var(--b-4),
     0 5px 4px rgba(0,0,0,.5),
     0 10px 12px rgba(0,0,0,.55);
 }
@@ -97,30 +120,30 @@ select.ctrl-btn option{background:#1a1a2e;color:#fff}
 
 /* Captured-pieces row (mini 3D) */
 .cap-piece{display:inline-block;margin:0 1px;font-size:20px;line-height:1}
-.cap-white{color:#fbf3df;text-shadow:0 1px 0 #c3ab7d,0 2px 1px rgba(0,0,0,.45)}
-.cap-black{color:#2a201a;text-shadow:0 1px 0 #050302,0 2px 1px rgba(0,0,0,.55)}
+.cap-white{color:var(--w-base);text-shadow:0 1px 0 var(--w-3),0 2px 1px rgba(0,0,0,.45)}
+.cap-black{color:var(--b-base);text-shadow:0 1px 0 var(--b-3),0 2px 1px rgba(0,0,0,.55)}
 
 /* SVG piece icons (themed sets) — 3D via stacked drop-shadow filters */
 .piece svg{display:block;width:1em;height:1em}
 .cell.white-piece .piece svg{
-  color:#fbf3df;
+  color:var(--w-base);
   filter:
-    drop-shadow(0 1px 0 #ebdcb0)
-    drop-shadow(0 2px 0 #c3ab7d)
-    drop-shadow(0 3px 0 #a8916a)
+    drop-shadow(0 1px 0 var(--w-1))
+    drop-shadow(0 2px 0 var(--w-3))
+    drop-shadow(0 3px 0 var(--w-4))
     drop-shadow(0 5px 4px rgba(0,0,0,.45));
 }
 .cell.black-piece .piece svg{
-  color:#2a201a;
+  color:var(--b-base);
   filter:
-    drop-shadow(0 1px 0 #1a120d)
-    drop-shadow(0 2px 0 #0d0805)
-    drop-shadow(0 3px 0 #050302)
+    drop-shadow(0 1px 0 var(--b-1))
+    drop-shadow(0 2px 0 var(--b-2))
+    drop-shadow(0 3px 0 var(--b-3))
     drop-shadow(0 5px 5px rgba(0,0,0,.55));
 }
 .cap-piece svg{display:inline-block;width:20px;height:20px;vertical-align:middle}
-.cap-white svg{color:#fbf3df;filter:drop-shadow(0 1px 0 #c3ab7d) drop-shadow(0 2px 1px rgba(0,0,0,.45))}
-.cap-black svg{color:#2a201a;filter:drop-shadow(0 1px 0 #050302) drop-shadow(0 2px 1px rgba(0,0,0,.55))}
+.cap-white svg{color:var(--w-base);filter:drop-shadow(0 1px 0 var(--w-3)) drop-shadow(0 2px 1px rgba(0,0,0,.45))}
+.cap-black svg{color:var(--b-base);filter:drop-shadow(0 1px 0 var(--b-3)) drop-shadow(0 2px 1px rgba(0,0,0,.55))}
 .promo-piece svg{width:40px;height:40px}
 
 /* Attribution line */
@@ -760,7 +783,11 @@ scene.addEventListener('touchend', () => touchStart = null);
 // THEME & BOARD COLORS
 // ═══════════════════════════════════════
 function setTheme(t) { currentTheme = t; renderBoard(); }
-function setBoardColors(c) { currentBoardColor = c; renderBoard(); }
+function setBoardColors(c) {
+  currentBoardColor = c;
+  document.body.dataset.board = c;
+  renderBoard();
+}
 
 function resetBoard() {
   initGame();
@@ -773,6 +800,7 @@ function resetBoard() {
 // INIT
 // ═══════════════════════════════════════
 initGame();
+document.body.dataset.board = currentBoardColor;
 renderBoard();
 updateRotation();
 updateStatus();
