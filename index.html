@@ -164,6 +164,39 @@
   .tile-fuzzel:hover { border-color: #bd93f9; box-shadow: 0 12px 40px rgba(189,147,249,0.15); }
   .tile-battleship:hover { border-color: #d4a843; box-shadow: 0 12px 40px rgba(212,168,67,0.15); }
   .tile-roadrage:hover { border-color: #ff5555; box-shadow: 0 12px 40px rgba(255,85,85,0.15); }
+  .tile-chesstopia:hover { border-color: #c3a6ff; box-shadow: 0 12px 40px rgba(195,166,255,0.18); }
+
+  /* Chesstopia CSS-illustrated tile */
+  .ct-art {
+    width: 100%;
+    aspect-ratio: 16/10;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #2a1a3a 0%, #16213e 100%);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ct-board {
+    position: absolute;
+    width: 78%;
+    aspect-ratio: 1;
+    background:
+      repeating-conic-gradient(#c3a6ff 0% 25%, #1a1a40 0% 50%) 50% 50% / 25% 25%;
+    border-radius: 4px;
+    opacity: 0.55;
+    transform: perspective(320px) rotateX(48deg) translateY(10%);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.6);
+  }
+  .ct-king {
+    position: relative;
+    z-index: 2;
+    font-size: 3.6rem;
+    line-height: 1;
+    color: #f1fa8c;
+    filter: drop-shadow(0 0 18px rgba(241,250,140,0.7));
+  }
 
   /* Road Rage CSS-illustrated tile */
   .rr-art {
@@ -379,6 +412,16 @@
       <div class="tile-info">
         <div class="tile-name">Road Rage</div>
         <div class="tile-desc">Dodge the traffic &mdash; don't crash!</div>
+      </div>
+    </a>
+    <a href="chesstopia.html" class="tile tile-chesstopia">
+      <div class="ct-art">
+        <div class="ct-board"></div>
+        <span class="ct-king">&#9818;</span>
+      </div>
+      <div class="tile-info">
+        <div class="tile-name">Chesstopia</div>
+        <div class="tile-desc">Chess with epic skins!</div>
       </div>
     </a>
   </div>

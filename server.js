@@ -3,7 +3,7 @@ const path = require('path');
 const leaderboard = require('./api/leaderboard');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 22334;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
