@@ -27,8 +27,9 @@ select.ctrl-btn{appearance:none;padding-right:24px;background-image:url("data:im
 select.ctrl-btn option{background:#1a1a2e;color:#fff}
 
 /* ── 3D Scene ── */
-.scene{flex:1;display:flex;align-items:center;justify-content:center;width:100%;perspective:1200px;overflow:hidden}
-.board-wrap{transform-style:preserve-3d;transition:transform .1s ease-out}
+.scene{flex:1;display:flex;align-items:center;justify-content:center;width:100%;perspective:1200px;overflow:hidden;touch-action:none}
+.board-wrap{transform-style:preserve-3d;transition:transform .35s cubic-bezier(.2,.8,.3,1);cursor:grab}
+.board-wrap.dragging{transition:none;cursor:grabbing}
 .board{display:grid;grid-template-columns:repeat(8,1fr);transform-style:preserve-3d;border:3px solid rgba(255,255,255,.15);border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 
 .cell{width:clamp(40px,10vw,70px);height:clamp(40px,10vw,70px);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s;user-select:none;-webkit-user-select:none;font-size:clamp(30px,8vw,58px);line-height:1}
@@ -726,11 +727,18 @@ function showPromotion(color) {
 }
 
 // ═══════════════════════════════════════
-// 3D ROTATION (touch/mouse)
+// 3D ROTATION (touch/mouse) — threshold-based drag so taps on cells still register
 // ═══════════════════════════════════════
-let rotX = 25, rotY = 0, isDragging = false, dragStartX, dragStartY, startRotX, startRotY;
+let rotX = 25, rotY = 0;
 const wrap = document.getElementById('boardWrap');
 const scene = document.getElementById('scene');
+
+let pointerStart = null;   // { x, y, rx, ry, target }
+let isDragging = false;
+let suppressClickUntil = 0;
+const DRAG_THRESHOLD = 6;  // px before promoting to a rotation drag
+const SENS_X = 0.55;       // horizontal cursor px → degrees
+const SENS_Y = 0.45;
 
 function updateRotation() {
   wrap.style.transform = `rotateX(${rotX}deg) rotateZ(${rotY}deg)`;
@@ -741,43 +749,68 @@ function resetRotation() {
   updateRotation();
 }
 
-// Mouse
+function pointerDown(x, y) {
+  pointerStart = { x, y, rx: rotX, ry: rotY };
+  isDragging = false;
+}
+
+function pointerMove(x, y) {
+  if (!pointerStart) return false;
+  const dx = x - pointerStart.x;
+  const dy = y - pointerStart.y;
+  if (!isDragging) {
+    if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return false;
+    isDragging = true;
+    wrap.classList.add('dragging');
+  }
+  rotY = pointerStart.ry + dx * SENS_X;
+  rotX = Math.max(0, Math.min(60, pointerStart.rx - dy * SENS_Y));
+  updateRotation();
+  return true;
+}
+
+function pointerUp() {
+  const wasDragging = isDragging;
+  pointerStart = null;
+  if (wasDragging) {
+    isDragging = false;
+    wrap.classList.remove('dragging');
+    // Block the click that fires after a drag so cells don't get selected
+    suppressClickUntil = Date.now() + 250;
+  }
+}
+
+// Mouse — capture-phase click suppression covers post-drag clicks anywhere on the board
 scene.addEventListener('mousedown', e => {
-  if (e.target.closest('.cell')) return;
-  isDragging = true;
-  dragStartX = e.clientX; dragStartY = e.clientY;
-  startRotX = rotX; startRotY = rotY;
-  e.preventDefault();
+  if (e.button !== 0) return;
+  pointerDown(e.clientX, e.clientY);
 });
 window.addEventListener('mousemove', e => {
-  if (!isDragging) return;
-  rotY = startRotY + (e.clientX - dragStartX) * 0.4;
-  rotX = Math.max(0, Math.min(60, startRotX - (e.clientY - dragStartY) * 0.3));
-  updateRotation();
+  if (pointerMove(e.clientX, e.clientY)) e.preventDefault();
 });
-window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mouseup', pointerUp);
 
-// Touch (two-finger rotate)
-let touchStart = null;
+// Touch — single-finger drag rotates; preventDefault only after threshold to keep taps fast
 scene.addEventListener('touchstart', e => {
-  if (e.target.closest('.cell')) return;
-  if (e.touches.length === 1) {
-    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, rx: rotX, ry: rotY };
-    e.preventDefault();
-  }
-}, { passive: false });
+  if (e.touches.length !== 1) { pointerStart = null; return; }
+  pointerDown(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
 scene.addEventListener('touchmove', e => {
-  if (!touchStart || e.target.closest('.cell')) return;
-  if (e.touches.length === 1) {
-    const dx = e.touches[0].clientX - touchStart.x;
-    const dy = e.touches[0].clientY - touchStart.y;
-    rotY = touchStart.ry + dx * 0.4;
-    rotX = Math.max(0, Math.min(60, touchStart.rx - dy * 0.3));
-    updateRotation();
+  if (!pointerStart || e.touches.length !== 1) return;
+  if (pointerMove(e.touches[0].clientX, e.touches[0].clientY)) {
     e.preventDefault();
   }
 }, { passive: false });
-scene.addEventListener('touchend', () => touchStart = null);
+scene.addEventListener('touchend', pointerUp);
+scene.addEventListener('touchcancel', pointerUp);
+
+// Capture-phase click swallower — runs before cell handlers
+scene.addEventListener('click', e => {
+  if (Date.now() < suppressClickUntil) {
+    e.stopPropagation();
+    e.preventDefault();
+  }
+}, true);
 
 // ═══════════════════════════════════════
 // THEME & BOARD COLORS
