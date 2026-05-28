@@ -31,17 +31,74 @@ select.ctrl-btn option{background:#1a1a2e;color:#fff}
 .board-wrap{transform-style:preserve-3d;transition:transform .1s ease-out}
 .board{display:grid;grid-template-columns:repeat(8,1fr);transform-style:preserve-3d;border:3px solid rgba(255,255,255,.15);border-radius:4px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
 
-.cell{width:clamp(40px,10vw,70px);height:clamp(40px,10vw,70px);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s;user-select:none;-webkit-user-select:none;font-size:clamp(24px,7vw,48px);line-height:1}
-.cell.light{background:#f0d9b5}
-.cell.dark{background:#b58863}
+.cell{width:clamp(40px,10vw,70px);height:clamp(40px,10vw,70px);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s;user-select:none;-webkit-user-select:none;font-size:clamp(30px,8vw,58px);line-height:1}
+/* Wood grain board */
+.cell.light{
+  background:
+    repeating-linear-gradient(92deg, rgba(120,80,40,.06) 0 2px, transparent 2px 9px),
+    linear-gradient(135deg, #f0d5a8 0%, #e2b97e 55%, #d9a866 100%);
+}
+.cell.dark{
+  background:
+    repeating-linear-gradient(92deg, rgba(0,0,0,.10) 0 2px, transparent 2px 9px),
+    linear-gradient(135deg, #8a5a36 0%, #6e4322 55%, #5a341a 100%);
+}
 .cell.selected{box-shadow:inset 0 0 0 3px #ffd93d}
 .cell.legal-move::after{content:'';position:absolute;width:30%;height:30%;border-radius:50%;background:rgba(0,0,0,.25)}
 .cell.legal-capture::after{content:'';position:absolute;inset:4px;border-radius:50%;border:3px solid rgba(0,0,0,.25)}
-.cell.last-move{background:rgba(255,255,100,.3)}
-.cell.check{background:radial-gradient(circle,rgba(255,0,0,.6),transparent 70%)}
-.cell .piece{pointer-events:none;filter:drop-shadow(1px 1px 2px rgba(0,0,0,.4));transition:transform .1s}
-.cell.white-piece .piece{filter:drop-shadow(1px 1px 2px rgba(0,0,0,.3))}
-.cell.black-piece .piece{filter:drop-shadow(1px 1px 2px rgba(0,0,0,.5))}
+.cell.last-move{box-shadow:inset 0 0 0 3px rgba(255,235,100,.55)}
+.cell.check{background:radial-gradient(circle,rgba(255,0,0,.55),transparent 70%) !important}
+
+/* 3D pieces — base */
+.cell .piece{
+  pointer-events:none;
+  transition:transform .15s;
+  display:inline-block;
+  transform:translateY(-2px);
+  position:relative;
+}
+/* Soft ground-shadow puddle under each piece */
+.cell.white-piece::before, .cell.black-piece::before{
+  content:'';
+  position:absolute;
+  bottom:8%;
+  left:18%;
+  right:18%;
+  height:10%;
+  border-radius:50%;
+  background:radial-gradient(ellipse at center, rgba(0,0,0,.55) 0%, rgba(0,0,0,.25) 50%, transparent 75%);
+  filter:blur(1px);
+  pointer-events:none;
+}
+/* White piece — ivory with cream extrusion */
+.cell.white-piece .piece{
+  color:#fbf3df;
+  text-shadow:
+    0 1px 0 #ebdcb0,
+    0 2px 0 #d8c498,
+    0 3px 0 #c3ab7d,
+    0 4px 0 #a8916a,
+    0 5px 0 #8a7657,
+    0 6px 4px rgba(0,0,0,.35),
+    0 10px 10px rgba(0,0,0,.4);
+}
+/* Black piece — walnut with dark extrusion */
+.cell.black-piece .piece{
+  color:#2a201a;
+  text-shadow:
+    0 1px 0 #1a120d,
+    0 2px 0 #0d0805,
+    0 3px 0 #050302,
+    0 4px 0 #000,
+    0 5px 4px rgba(0,0,0,.5),
+    0 10px 12px rgba(0,0,0,.55);
+}
+.cell:hover .piece{transform:translateY(-4px)}
+
+/* Captured-pieces row (mini 3D) */
+.cap-piece{display:inline-block;margin:0 1px;font-size:20px;line-height:1}
+.cap-white{color:#fbf3df;text-shadow:0 1px 0 #c3ab7d,0 2px 1px rgba(0,0,0,.45)}
+.cap-black{color:#2a201a;text-shadow:0 1px 0 #050302,0 2px 1px rgba(0,0,0,.55)}
 
 /* Rank/file labels */
 .board-outer{position:relative;transform-style:preserve-3d}
@@ -133,7 +190,8 @@ select.ctrl-btn option{background:#1a1a2e;color:#fff}
 // ═══════════════════════════════════════
 const THEMES = {
   standard: {
-    w: { K:'♔', Q:'♕', R:'♖', B:'♗', N:'♘', P:'♙' },
+    // Use solid (filled) glyphs for both colors so CSS can give them a uniform 3D look
+    w: { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' },
     b: { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' }
   },
   potter: {
@@ -155,7 +213,8 @@ const THEMES = {
 };
 
 const BOARD_COLORS = {
-  classic: ['#f0d9b5','#b58863'],
+  // Classic uses CSS gradients (defined in .cell.light/.dark) so set to null sentinel
+  classic: null,
   blue:    ['#d4e4f7','#4a7fb5'],
   green:   ['#d4e8c2','#5a8a42'],
   purple:  ['#e0d0f0','#7b5ea7'],
@@ -427,9 +486,9 @@ function renderBoard() {
       const isLight = (r+c)%2===0;
       cell.className = 'cell ' + (isLight ? 'light' : 'dark');
 
-      // Board colors
+      // Board colors — null sentinel means "use the CSS-defined wood styling"
       const colors = BOARD_COLORS[currentBoardColor];
-      cell.style.background = isLight ? colors[0] : colors[1];
+      if (colors) cell.style.background = isLight ? colors[0] : colors[1];
 
       // Last move highlight
       if (lastMove && ((r===lastMove[0]&&c===lastMove[1])||(r===lastMove[2]&&c===lastMove[3]))) {
@@ -468,9 +527,19 @@ function renderBoard() {
     }
   }
 
-  // Captured pieces
-  document.getElementById('capturedWhite').innerHTML = capturedW.map(p => getPieceChar(p)).join('');
-  document.getElementById('capturedBlack').innerHTML = capturedB.map(p => getPieceChar(p)).join('');
+  // Captured pieces — render each with its color class so the 3D color holds in the captured row
+  const renderCaptured = (containerId, list) => {
+    const c = document.getElementById(containerId);
+    c.textContent = '';
+    list.forEach(p => {
+      const span = document.createElement('span');
+      span.className = 'cap-piece ' + (p[0] === 'w' ? 'cap-white' : 'cap-black');
+      span.textContent = getPieceChar(p);
+      c.appendChild(span);
+    });
+  };
+  renderCaptured('capturedWhite', capturedW);
+  renderCaptured('capturedBlack', capturedB);
 
   // Labels
   const rankEl = document.getElementById('rankLabels');
