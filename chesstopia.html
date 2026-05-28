@@ -80,6 +80,7 @@ body[data-board="red"]{
   display:inline-block;
   transform:translateY(-2px);
   position:relative;
+  font-variant-emoji:text;
 }
 /* Soft ground-shadow puddle under each piece */
 .cell.white-piece::before, .cell.black-piece::before{
@@ -120,7 +121,7 @@ body[data-board="red"]{
 .cell:hover .piece{transform:translateY(-4px)}
 
 /* Captured-pieces row (mini 3D) */
-.cap-piece{display:inline-block;margin:0 1px;font-size:20px;line-height:1}
+.cap-piece{display:inline-block;margin:0 1px;font-size:20px;line-height:1;font-variant-emoji:text}
 .cap-white{color:var(--w-base);text-shadow:0 1px 0 var(--w-3),0 2px 1px rgba(0,0,0,.45)}
 .cap-black{color:var(--b-base);text-shadow:0 1px 0 var(--b-3),0 2px 1px rgba(0,0,0,.55)}
 
@@ -164,7 +165,7 @@ body[data-board="red"]{
 .promo-box{background:#1a1a2e;border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:20px;text-align:center}
 .promo-box h3{margin-bottom:12px;font-size:18px;color:#ffd93d}
 .promo-pieces{display:flex;gap:12px;justify-content:center}
-.promo-piece{width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:40px;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);transition:all .15s}
+.promo-piece{width:60px;height:60px;display:flex;align-items:center;justify-content:center;font-size:40px;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.15);transition:all .15s;font-variant-emoji:text}
 .promo-piece:hover{background:rgba(255,255,255,.15);border-color:#ffd93d;transform:scale(1.1)}
 
 /* ── Game over ── */
@@ -277,9 +278,11 @@ body[data-board="red"]{
 // ═══════════════════════════════════════
 const THEMES = {
   standard: {
-    // Use solid (filled) glyphs for both colors so CSS can give them a uniform 3D look
-    w: { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' },
-    b: { K:'♚', Q:'♛', R:'♜', B:'♝', N:'♞', P:'♟' }
+    // Use solid (filled) glyphs for both colors so CSS can give them a uniform 3D look.
+    // ︎ (Variation Selector-15) forces text/monochrome presentation so iOS doesn't
+    // render these as colored emojis (which would ignore our CSS color and look black).
+    w: { K:'♚︎', Q:'♛︎', R:'♜︎', B:'♝︎', N:'♞︎', P:'♟︎' },
+    b: { K:'♚︎', Q:'♛︎', R:'♜︎', B:'♝︎', N:'♞︎', P:'♟︎' }
   },
   potter: {
     w: { K:'svg:hp_K', Q:'svg:hp_Q', R:'svg:hp_R', B:'svg:hp_B', N:'svg:hp_N', P:'svg:hp_P' },
