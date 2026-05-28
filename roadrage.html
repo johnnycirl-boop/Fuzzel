@@ -21,15 +21,61 @@ canvas{display:block;margin:0 auto}
 #gun-icon.active{opacity:1}
 
 /* ── Screens ── */
-.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,30,.92);backdrop-filter:blur(8px);color:#fff;text-align:center;transition:opacity .3s}
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;background:rgba(10,10,30,.92);backdrop-filter:blur(8px);color:#fff;text-align:center;transition:opacity .3s;overflow:hidden}
 .overlay.hidden{opacity:0;pointer-events:none}
-.overlay h1{font-size:clamp(32px,6vw,56px);margin-bottom:12px}
-.overlay h2{font-size:clamp(20px,4vw,32px);margin-bottom:8px;color:#ffd93d}
-.overlay p{font-size:clamp(14px,2.5vw,18px);opacity:.8;max-width:400px;line-height:1.5;margin-bottom:6px}
-.overlay .subtitle{font-size:clamp(16px,3vw,22px);color:#8be9fd;margin-bottom:20px}
-.btn{display:inline-block;padding:14px 40px;font-size:20px;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff6b6b,#ee5a24);box-shadow:0 4px 20px rgba(238,90,36,.4);transition:transform .15s,box-shadow .15s;margin-top:16px;pointer-events:all}
+.overlay h1{font-size:clamp(36px,7vw,64px);margin-bottom:12px;position:relative;z-index:2}
+.overlay h2{font-size:clamp(20px,4vw,32px);margin-bottom:8px;color:#ffd93d;position:relative;z-index:2}
+.overlay p{font-size:clamp(14px,2.5vw,18px);opacity:.85;max-width:400px;line-height:1.5;margin-bottom:6px;position:relative;z-index:2}
+.overlay .subtitle{font-size:clamp(16px,3vw,22px);color:#c3a6ff;font-weight:600;letter-spacing:.5px;margin-bottom:20px;position:relative;z-index:2}
+.btn{display:inline-block;padding:14px 40px;font-size:20px;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff6b6b,#ee5a24);box-shadow:0 4px 20px rgba(238,90,36,.4);transition:transform .15s,box-shadow .15s;margin-top:16px;pointer-events:all;position:relative;z-index:2}
 .btn:hover{transform:scale(1.05);box-shadow:0 6px 28px rgba(238,90,36,.6)}
-.controls-hint{margin-top:20px;opacity:.5;font-size:13px}
+.controls-hint{margin-top:20px;opacity:.5;font-size:13px;position:relative;z-index:2}
+
+/* ── Fuzzel.ie-style animated background (start screen only) ── */
+#start-screen{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%);backdrop-filter:none}
+#start-screen .blob{position:absolute;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;animation:floatBlob 20s ease-in-out infinite;z-index:0}
+#start-screen .blob-1{width:500px;height:500px;background:radial-gradient(circle,#ff79c6,#bd93f9);top:-10%;left:-5%}
+#start-screen .blob-2{width:400px;height:400px;background:radial-gradient(circle,#8be9fd,#50fa7b);top:50%;right:-8%;animation-delay:-7s}
+#start-screen .blob-3{width:350px;height:350px;background:radial-gradient(circle,#f1fa8c,#ffb86c);bottom:-5%;left:20%;animation-delay:-14s}
+@keyframes floatBlob{
+  0%,100%{transform:translate(0,0) scale(1)}
+  25%{transform:translate(30px,-40px) scale(1.1)}
+  50%{transform:translate(-20px,20px) scale(.95)}
+  75%{transform:translate(15px,35px) scale(1.05)}
+}
+#start-screen h1{
+  font-weight:900;
+  letter-spacing:1px;
+  display:inline-flex;
+  align-items:center;
+  gap:14px;
+  justify-content:center;
+}
+#start-screen h1 .emoji{
+  filter:drop-shadow(0 0 12px rgba(255,217,61,.5));
+}
+#start-screen h1 .rr-title{
+  background:linear-gradient(90deg,#ff79c6,#f1fa8c,#50fa7b,#8be9fd,#bd93f9);
+  background-size:400% 400%;
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  animation:shimmer 5s ease infinite;
+}
+@keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+#start-screen .info-card{
+  background:rgba(255,255,255,0.06);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;
+  padding:18px 22px;
+  margin:8px 0 4px;
+  max-width:420px;
+  position:relative;
+  z-index:2;
+}
+#start-screen .info-card p{margin:0;font-size:clamp(13px,2.4vw,16px);line-height:1.6;opacity:.9}
+#start-screen .info-card b{color:#f1fa8c}
 
 /* ── Back button ── */
 #back-btn{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:25;padding:8px 20px;font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;color:#fff;background:rgba(255,255,255,.12);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.2);transition:background .2s;text-decoration:none;pointer-events:all}
@@ -39,6 +85,33 @@ canvas{display:block;margin:0 auto}
 #level-banner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);z-index:15;font-size:clamp(36px,7vw,64px);font-weight:900;color:#ffd93d;text-shadow:0 0 30px rgba(255,217,61,.6);pointer-events:none;transition:transform .3s ease-out,opacity .3s}
 #level-banner.show{transform:translate(-50%,-50%) scale(1);opacity:1}
 #level-banner.hide{transform:translate(-50%,-50%) scale(1.3);opacity:0}
+
+/* ── Game over leaderboard ── */
+.go-content{max-height:92vh;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:520px;width:94%;position:relative;z-index:2}
+.go-content::-webkit-scrollbar{width:6px}
+.go-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+.go-name-entry{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:380px;margin-top:6px}
+.go-name-chips-label{font-size:13px;opacity:.7}
+.go-name-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%}
+.go-name-chip{padding:6px 14px;border-radius:18px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font-size:14px;cursor:pointer;transition:all .15s;font-family:inherit}
+.go-name-chip:hover{background:rgba(255,107,107,.18);border-color:rgba(255,107,107,.5)}
+.go-name-chip.selected{background:linear-gradient(135deg,#ff6b6b,#ee5a24);border-color:#ff6b6b}
+.go-name-input{padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font-size:16px;width:240px;max-width:100%;text-align:center;outline:none;transition:border-color .2s;font-family:inherit}
+.go-name-input:focus{border-color:#ff6b6b}
+.btn-save-score{padding:10px 28px;background:linear-gradient(135deg,#ffd93d,#f1fa8c);color:#1a1a2e;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s;font-family:inherit}
+.btn-save-score:hover{transform:scale(1.04)}
+.go-saved-msg{min-height:20px;font-size:14px;color:#50fa7b}
+.go-leaderboard{width:100%;margin-top:4px}
+.lb-table{width:100%;border-collapse:collapse;font-size:14px;color:#fff;background:rgba(255,255,255,.03);border-radius:10px;overflow:hidden}
+.lb-table th{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.15);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#c3a6ff;text-align:left}
+.lb-table th.right{text-align:right}
+.lb-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.lb-table tbody tr:last-child td{border-bottom:none}
+.lb-table .score-cell{text-align:right;font-weight:700;color:#ffd93d}
+.lb-table .date-cell{text-align:right;font-size:12px;opacity:.6}
+.lb-table .rank-cell{width:32px;text-align:center}
+.lb-table .current-player{background:rgba(255,107,107,.14)}
+.lb-empty{padding:18px;opacity:.6;font-size:14px;text-align:center}
 
 /* ── Mobile controls ── */
 #touch-controls{position:fixed;bottom:20px;left:0;right:0;display:none;justify-content:center;gap:16px;z-index:10;padding:0 20px}
@@ -71,21 +144,40 @@ canvas{display:block;margin:0 auto}
 
 <!-- Start screen -->
 <div class="overlay" id="start-screen">
-  <h1>🚗 ROAD RAGE</h1>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <h1><span class="emoji">🚗</span><span class="rr-title">ROAD RAGE</span></h1>
   <p class="subtitle">Dodge the Traffic!</p>
-  <p>Weave your car through oncoming traffic, collect power-ups, and blast your way through with the machine gun!</p>
-  <p style="margin-top:12px"><b>Arrow keys / A D</b> — move left & right<br><b>Space</b> — fire machine gun<br><b>⭐ Gold balls</b> — unlock the gun!</p>
+  <div class="info-card">
+    <p>Weave through oncoming traffic, collect power-ups, and blast your way through with the machine gun!</p>
+  </div>
+  <div class="info-card">
+    <p><b>Arrow keys / A D</b> — move left &amp; right<br><b>Space</b> — fire machine gun<br><b>⭐ Gold balls</b> — unlock the gun!</p>
+  </div>
   <button class="btn" onclick="startGame()">DRIVE!</button>
   <p class="controls-hint">Touch controls on mobile</p>
 </div>
 
 <!-- Game over screen -->
 <div class="overlay hidden" id="gameover-screen">
-  <h2>💥 WRECKED!</h2>
-  <p>Score: <b id="go-score">0</b></p>
-  <p>Level: <b id="go-level">1</b></p>
-  <p id="go-highscore" style="color:#ffd93d"></p>
-  <button class="btn" onclick="startGame()">TRY AGAIN</button>
+  <div class="go-content">
+    <h2>💥 WRECKED!</h2>
+    <p>Score: <b id="go-score">0</b> &nbsp;·&nbsp; Level: <b id="go-level">1</b></p>
+    <p id="go-highscore" style="color:#ffd93d"></p>
+
+    <div class="go-name-entry" id="goNameEntry">
+      <div class="go-name-chips-label" id="goNameChipsLabel" style="display:none">Already on the board? Tap your name:</div>
+      <div class="go-name-chips" id="goNameChips"></div>
+      <input class="go-name-input" id="goNameInput" placeholder="Your name..." maxlength="12" autocomplete="off" spellcheck="false">
+      <button class="btn-save-score" onclick="saveScore()">Save Score</button>
+    </div>
+    <div class="go-saved-msg" id="goSavedMsg"></div>
+
+    <div class="go-leaderboard" id="goLeaderboard"></div>
+
+    <button class="btn" onclick="startGame()">TRY AGAIN</button>
+  </div>
 </div>
 
 <!-- Touch controls -->
@@ -548,8 +640,143 @@ function gameOver() {
   document.getElementById('go-score').textContent = state.score;
   document.getElementById('go-level').textContent = state.level;
   document.getElementById('go-highscore').textContent = highScore > 0 ? 'High Score: ' + highScore : '';
+
+  // Reset leaderboard panel
+  document.getElementById('goNameEntry').style.display = 'flex';
+  document.getElementById('goNameInput').value = '';
+  document.getElementById('goSavedMsg').textContent = '';
+  document.getElementById('goLeaderboard').textContent = '';
+  document.getElementById('goNameChips').textContent = '';
+  document.getElementById('goNameChipsLabel').style.display = 'none';
+  lastSavedId = null;
+
   document.getElementById('gameover-screen').classList.remove('hidden');
+
+  // Populate returning-player chips (from any game)
+  fetchAllNames().then(names => {
+    if (!names.length) return;
+    const chipsEl = document.getElementById('goNameChips');
+    document.getElementById('goNameChipsLabel').style.display = 'block';
+    names.forEach(n => {
+      const chip = document.createElement('button');
+      chip.className = 'go-name-chip';
+      chip.type = 'button';
+      chip.textContent = n;
+      chip.onclick = () => {
+        document.getElementById('goNameInput').value = n;
+        chipsEl.querySelectorAll('.go-name-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      };
+      chipsEl.appendChild(chip);
+    });
+  });
+
+  // Preload Road Rage leaderboard
+  fetchLeaderboard('roadrage').then(board => {
+    renderLeaderboardTable(document.getElementById('goLeaderboard'), board, null);
+  });
 }
+
+/* ── Leaderboard ── */
+let lastSavedId = null;
+
+async function fetchLeaderboard(game) {
+  try {
+    const q = game ? '?game=' + encodeURIComponent(game) : '';
+    const res = await fetch('/api/leaderboard' + q);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+async function fetchAllNames() {
+  try {
+    const [f, r] = await Promise.all([
+      fetch('/api/leaderboard?game=fuzzle').then(r => r.ok ? r.json() : []),
+      fetch('/api/leaderboard?game=roadrage').then(r => r.ok ? r.json() : [])
+    ]);
+    return [...new Set([...f, ...r].map(e => e.name))];
+  } catch {
+    return [];
+  }
+}
+
+async function saveToLeaderboard(name, sc) {
+  try {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: sc, difficulty: 'classic', game: 'roadrage' })
+    });
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function renderLeaderboardTable(container, board, highlightId) {
+  container.textContent = '';
+  if (!board || board.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'lb-empty';
+    empty.textContent = 'No scores yet. Be the first!';
+    container.appendChild(empty);
+    return;
+  }
+  const ranks = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  const t = document.createElement('table');
+  t.className = 'lb-table';
+  const thead = t.createTHead();
+  const hr = thead.insertRow();
+  ['#','Name','Score','Date'].forEach((h, i) => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    if (i >= 2) th.className = 'right';
+    hr.appendChild(th);
+  });
+  const tb = t.createTBody();
+  board.forEach((e, i) => {
+    const r = tb.insertRow();
+    if (e.id === highlightId) r.className = 'current-player';
+    const rc = r.insertCell();
+    rc.className = 'rank-cell';
+    rc.textContent = i < 3 ? ranks[i] : (i + 1);
+    r.insertCell().textContent = e.name;
+    const sc = r.insertCell();
+    sc.className = 'score-cell';
+    sc.textContent = e.score;
+    const dc = r.insertCell();
+    dc.className = 'date-cell';
+    dc.textContent = new Date(e.created_at).toLocaleDateString();
+  });
+  container.appendChild(t);
+}
+
+async function saveScore() {
+  const input = document.getElementById('goNameInput');
+  let name = input.value.trim() || 'Player';
+  if (name.length > 12) name = name.slice(0, 12);
+  document.getElementById('goNameEntry').style.display = 'none';
+  document.getElementById('goSavedMsg').textContent = 'Saving...';
+  const saved = await saveToLeaderboard(name, state.score);
+  lastSavedId = saved ? saved.id : null;
+  if (!saved) {
+    document.getElementById('goSavedMsg').textContent = 'Could not save score.';
+  } else if (saved.score > state.score) {
+    document.getElementById('goSavedMsg').textContent = `Your best is ${saved.score}, ${name}!`;
+  } else {
+    document.getElementById('goSavedMsg').textContent = `Score saved, ${name}!`;
+  }
+  const board = await fetchLeaderboard('roadrage');
+  renderLeaderboardTable(document.getElementById('goLeaderboard'), board, lastSavedId);
+}
+
+document.getElementById('goNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveScore();
+});
 
 function showLevelBanner(text) {
   const el = document.getElementById('level-banner');

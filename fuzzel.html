@@ -1566,7 +1566,7 @@ let cachedBoard = [];
 
 async function fetchLeaderboard() {
   try {
-    const res = await fetch('/api/leaderboard');
+    const res = await fetch('/api/leaderboard?game=fuzzle');
     if (!res.ok) throw new Error('Failed to fetch');
     cachedBoard = await res.json();
     return cachedBoard;
@@ -1580,7 +1580,7 @@ async function saveToLeaderboard(name, sc, diff) {
     const res = await fetch('/api/leaderboard', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, score: sc, difficulty: diff })
+      body: JSON.stringify({ name, score: sc, difficulty: diff, game: 'fuzzle' })
     });
     if (!res.ok) throw new Error('Failed to save');
     return await res.json();
