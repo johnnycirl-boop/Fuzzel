@@ -231,6 +231,12 @@ body[data-board="red"]{
     <option value="purple">Royal Purple</option>
     <option value="red">Ruby Red</option>
   </select>
+  <select class="ctrl-btn" id="aiSelect" onchange="setAIOpponent(this.value)">
+    <option value="off">Human vs Human</option>
+    <option value="easy">AI: Easy</option>
+    <option value="medium">AI: Medium</option>
+    <option value="hard">AI: Hard</option>
+  </select>
   <button class="ctrl-btn" onclick="resetBoard()">New Game</button>
   <button class="ctrl-btn" onclick="undoMove()">Undo</button>
   <button class="ctrl-btn" onclick="resetRotation()">Reset View</button>
@@ -518,12 +524,18 @@ function makeMove(fr, fc, tr, tc, promoType) {
 }
 
 function undoMove() {
-  if (!history.length) return;
-  const s = history.pop();
-  board = s.board; turn = s.turn; enPassant = s.enPassant;
-  castling = s.castling; kingPos = s.kingPos;
-  capturedW = s.capturedW; capturedB = s.capturedB;
-  lastMove = s.lastMove;
+  if (!history.length || aiThinking) return;
+  // When playing the AI, undo both the AI's reply and the human's move
+  // so the human is back on their own turn.
+  const popCount = (aiOpponent !== 'off' && history.length >= 2 && turn !== aiColor) ? 2 : 1;
+  for (let i = 0; i < popCount; i++) {
+    if (!history.length) break;
+    const s = history.pop();
+    board = s.board; turn = s.turn; enPassant = s.enPassant;
+    castling = s.castling; kingPos = s.kingPos;
+    capturedW = s.capturedW; capturedB = s.capturedB;
+    lastMove = s.lastMove;
+  }
   selected = null; legalMoves = [];
   renderBoard();
   updateStatus();
@@ -542,6 +554,234 @@ function checkGameState() {
     return true;
   }
   return false;
+}
+
+// ═══════════════════════════════════════
+// AI OPPONENT (minimax + alpha-beta + piece-square tables)
+// ═══════════════════════════════════════
+const PV = { P:100, N:320, B:330, R:500, Q:900, K:20000 };
+// Piece-square tables, white POV. board[0]=rank 8 maps to PST index 0.
+const PST = {
+  P: [
+      0,  0,  0,  0,  0,  0,  0,  0,
+     50, 50, 50, 50, 50, 50, 50, 50,
+     10, 10, 20, 30, 30, 20, 10, 10,
+      5,  5, 10, 25, 25, 10,  5,  5,
+      0,  0,  0, 20, 20,  0,  0,  0,
+      5, -5,-10,  0,  0,-10, -5,  5,
+      5, 10, 10,-20,-20, 10, 10,  5,
+      0,  0,  0,  0,  0,  0,  0,  0
+  ],
+  N: [
+    -50,-40,-30,-30,-30,-30,-40,-50,
+    -40,-20,  0,  0,  0,  0,-20,-40,
+    -30,  0, 10, 15, 15, 10,  0,-30,
+    -30,  5, 15, 20, 20, 15,  5,-30,
+    -30,  0, 15, 20, 20, 15,  0,-30,
+    -30,  5, 10, 15, 15, 10,  5,-30,
+    -40,-20,  0,  5,  5,  0,-20,-40,
+    -50,-40,-30,-30,-30,-30,-40,-50
+  ],
+  B: [
+    -20,-10,-10,-10,-10,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5, 10, 10,  5,  0,-10,
+    -10,  5,  5, 10, 10,  5,  5,-10,
+    -10,  0, 10, 10, 10, 10,  0,-10,
+    -10, 10, 10, 10, 10, 10, 10,-10,
+    -10,  5,  0,  0,  0,  0,  5,-10,
+    -20,-10,-10,-10,-10,-10,-10,-20
+  ],
+  R: [
+      0,  0,  0,  0,  0,  0,  0,  0,
+      5, 10, 10, 10, 10, 10, 10,  5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+     -5,  0,  0,  0,  0,  0,  0, -5,
+      0,  0,  0,  5,  5,  0,  0,  0
+  ],
+  Q: [
+    -20,-10,-10, -5, -5,-10,-10,-20,
+    -10,  0,  0,  0,  0,  0,  0,-10,
+    -10,  0,  5,  5,  5,  5,  0,-10,
+     -5,  0,  5,  5,  5,  5,  0, -5,
+      0,  0,  5,  5,  5,  5,  0, -5,
+    -10,  5,  5,  5,  5,  5,  0,-10,
+    -10,  0,  5,  0,  0,  0,  0,-10,
+    -20,-10,-10, -5, -5,-10,-10,-20
+  ],
+  K: [
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -30,-40,-40,-50,-50,-40,-40,-30,
+    -20,-30,-30,-40,-40,-30,-30,-20,
+    -10,-20,-20,-20,-20,-20,-20,-10,
+     20, 20,  0,  0,  0,  0, 20, 20,
+     20, 30, 10,  0,  0, 10, 30, 20
+  ]
+};
+const AI_DEPTHS = { easy: 2, medium: 3, hard: 4 };
+
+let aiOpponent = 'off';   // 'off' | 'easy' | 'medium' | 'hard'
+let aiColor = 'b';        // AI plays black by default
+let aiThinking = false;
+
+function evaluateBoard(brd) {
+  let score = 0;
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+    const p = brd[r][c];
+    if (!p) continue;
+    const v = PV[p[1]];
+    const idx = p[0]==='w' ? r*8+c : (7-r)*8+c;
+    const psv = PST[p[1]][idx];
+    if (p[0]==='w') score += v + psv;
+    else score -= v + psv;
+  }
+  return score;
+}
+
+// Apply a move to a board state (pure, returns new state). Promotion defaults to Queen.
+function applyMoveToBoard(brd, ep, cast, fr, fc, tr, tc) {
+  const nb = brd.map(r => [...r]);
+  const piece = nb[fr][fc];
+  const color = piece[0];
+  // En passant capture
+  if (piece[1]==='P' && ep && tr===ep[0] && tc===ep[1]) nb[fr][tc] = null;
+  nb[tr][tc] = piece;
+  nb[fr][fc] = null;
+  // Promote to Q in search
+  if (piece[1]==='P' && (tr===0 || tr===7)) nb[tr][tc] = color + 'Q';
+  // Castling rook
+  if (piece[1]==='K') {
+    if (tc-fc===2) { nb[tr][5]=nb[tr][7]; nb[tr][7]=null; }
+    if (fc-tc===2) { nb[tr][3]=nb[tr][0]; nb[tr][0]=null; }
+  }
+  let newEp = null;
+  if (piece[1]==='P' && Math.abs(tr-fr)===2) newEp = [(fr+tr)/2, fc];
+  const nc = {...cast};
+  if (piece[1]==='K') { nc[color+'K']=false; nc[color+'Q']=false; }
+  if (piece[1]==='R') {
+    if (fr===7&&fc===7) nc.wK=false;
+    if (fr===7&&fc===0) nc.wQ=false;
+    if (fr===0&&fc===7) nc.bK=false;
+    if (fr===0&&fc===0) nc.bQ=false;
+  }
+  if (tr===0&&tc===0) nc.bQ=false;
+  if (tr===0&&tc===7) nc.bK=false;
+  if (tr===7&&tc===0) nc.wQ=false;
+  if (tr===7&&tc===7) nc.wK=false;
+  return { brd: nb, ep: newEp, cast: nc };
+}
+
+function getAllMovesOnBoard(brd, color, ep, cast) {
+  const out = [];
+  for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+    const p = brd[r][c];
+    if (!p || p[0]!==color) continue;
+    const raw = getRawMoves(r, c, brd, ep, cast);
+    for (const [tr, tc] of raw) {
+      const nb = tryMove(r, c, tr, tc, brd, ep);
+      if (!isInCheck(color, nb)) out.push([r, c, tr, tc]);
+    }
+  }
+  return out;
+}
+
+// MVV-LVA-ish: prefer capturing higher-value targets first
+function orderMoves(brd, moves) {
+  moves.sort((a, b) => {
+    const va = brd[a[2]][a[3]] ? PV[brd[a[2]][a[3]][1]] : 0;
+    const vb = brd[b[2]][b[3]] ? PV[brd[b[2]][b[3]][1]] : 0;
+    return vb - va;
+  });
+}
+
+function minimax(brd, depth, alpha, beta, color, ep, cast) {
+  if (depth === 0) return evaluateBoard(brd);
+  const moves = getAllMovesOnBoard(brd, color, ep, cast);
+  if (!moves.length) {
+    if (isInCheck(color, brd)) return color==='w' ? -100000 - depth : 100000 + depth;
+    return 0;  // stalemate
+  }
+  orderMoves(brd, moves);
+  if (color === 'w') {
+    let max = -Infinity;
+    for (const [fr, fc, tr, tc] of moves) {
+      const nx = applyMoveToBoard(brd, ep, cast, fr, fc, tr, tc);
+      const s = minimax(nx.brd, depth-1, alpha, beta, 'b', nx.ep, nx.cast);
+      if (s > max) max = s;
+      if (max > alpha) alpha = max;
+      if (beta <= alpha) break;
+    }
+    return max;
+  } else {
+    let min = Infinity;
+    for (const [fr, fc, tr, tc] of moves) {
+      const nx = applyMoveToBoard(brd, ep, cast, fr, fc, tr, tc);
+      const s = minimax(nx.brd, depth-1, alpha, beta, 'w', nx.ep, nx.cast);
+      if (s < min) min = s;
+      if (min < beta) beta = min;
+      if (beta <= alpha) break;
+    }
+    return min;
+  }
+}
+
+function findBestMove(depth, color) {
+  const moves = getAllMovesOnBoard(board, color, enPassant, castling);
+  if (!moves.length) return null;
+  // Tiny shuffle for variety among equal-scoring moves
+  for (let i = moves.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [moves[i], moves[j]] = [moves[j], moves[i]];
+  }
+  orderMoves(board, moves);
+  let best = moves[0];
+  let bestScore = color==='w' ? -Infinity : Infinity;
+  let alpha = -Infinity, beta = Infinity;
+  for (const move of moves) {
+    const [fr, fc, tr, tc] = move;
+    const nx = applyMoveToBoard(board, enPassant, castling, fr, fc, tr, tc);
+    const s = minimax(nx.brd, depth-1, alpha, beta, color==='w'?'b':'w', nx.ep, nx.cast);
+    if ((color==='w' && s > bestScore) || (color==='b' && s < bestScore)) {
+      bestScore = s; best = move;
+      if (color==='w' && s > alpha) alpha = s;
+      if (color==='b' && s < beta) beta = s;
+    }
+  }
+  return best;
+}
+
+function setAIOpponent(level) {
+  aiOpponent = level;
+  maybeRunAI();
+}
+
+function maybeRunAI() {
+  if (aiOpponent === 'off') return;
+  if (aiThinking) return;
+  if (turn !== aiColor) return;
+  aiThinking = true;
+  updateStatus();
+  // Yield to let the UI repaint the "thinking" status before we lock the main thread
+  setTimeout(() => {
+    try {
+      const depth = AI_DEPTHS[aiOpponent] || 2;
+      const move = findBestMove(depth, aiColor);
+      if (move) {
+        const [fr, fc, tr, tc] = move;
+        makeMove(fr, fc, tr, tc, 'Q');
+      }
+    } finally {
+      aiThinking = false;
+    }
+    renderBoard();
+    updateStatus();
+    checkGameState();
+  }, 30);
 }
 
 // ═══════════════════════════════════════
@@ -657,6 +897,8 @@ function updateStatus() {
   dot.style.background = turn==='w' ? '#fff' : '#333';
   dot.style.border = '1px solid ' + (turn==='w' ? '#ccc' : '#666');
 
+  if (aiThinking) { text.textContent = 'Robot is thinking…'; return; }
+
   const inCheck = isInCheck(turn, board);
   const name = turn==='w' ? 'White' : 'Black';
   text.textContent = inCheck ? name + ' is in CHECK!' : name + "'s turn";
@@ -672,6 +914,10 @@ function showGameOver(title, desc) {
 // INTERACTION
 // ═══════════════════════════════════════
 function onCellClick(e) {
+  // Lock input while the AI is thinking or on its turn
+  if (aiThinking) return;
+  if (aiOpponent !== 'off' && turn === aiColor) return;
+
   const r = +e.currentTarget.dataset.r;
   const c = +e.currentTarget.dataset.c;
 
@@ -690,7 +936,8 @@ function onCellClick(e) {
     selected = null; legalMoves = [];
     renderBoard();
     updateStatus();
-    checkGameState();
+    if (checkGameState()) return;
+    maybeRunAI();
     return;
   }
 
@@ -719,7 +966,8 @@ function showPromotion(color) {
       pendingPromo = null;
       renderBoard();
       updateStatus();
-      checkGameState();
+      if (checkGameState()) return;
+      maybeRunAI();
     };
     choices.appendChild(div);
   }
