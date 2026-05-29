@@ -103,8 +103,8 @@ function newState() {
     score: 0,
     lives: 3,
     spawnTimer: 0,
-    spawnInterval: 90,
-    speed: 2.5,
+    spawnInterval: 126,
+    speed: 1.5,
     frame: 0,
     clouds: Array.from({length: 5}, () => ({
       x: Math.random() * 480,
@@ -359,14 +359,16 @@ function update() {
 
   // Spawn blocks
   s.spawnTimer++;
-  const interval = Math.max(40, s.spawnInterval - s.score * 2);
+  // Spawn interval ramps from 126 → 45 frames as score climbs (gentler at start, faster late)
+  const interval = Math.max(45, s.spawnInterval - s.score * 4);
   if (s.spawnTimer >= interval) {
     s.spawnTimer = 0;
     const fromLeft = Math.random() > 0.5;
     const bw = 40 + Math.random() * 40;
     const bh = 14 + Math.random() * 8;
     const color = BLOCK_COLORS[Math.floor(Math.random() * BLOCK_COLORS.length)];
-    const speed = s.speed + s.score * 0.08 + Math.random();
+    // Block speed ramps from 1.5 → ~5.5 as score climbs (slower opening, harder finish)
+    const speed = s.speed + s.score * 0.18 + Math.random() * 0.6;
     s.blocks.push({
       x: fromLeft ? -bw : canvas.width,
       y: topY - bh,
