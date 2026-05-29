@@ -165,6 +165,30 @@
   .tile-battleship:hover { border-color: #d4a843; box-shadow: 0 12px 40px rgba(212,168,67,0.15); }
   .tile-roadrage:hover { border-color: #ff5555; box-shadow: 0 12px 40px rgba(255,85,85,0.15); }
   .tile-chesstopia:hover { border-color: #c3a6ff; box-shadow: 0 12px 40px rgba(195,166,255,0.18); }
+  .tile-chickenjump:hover { border-color: #ffd93d; box-shadow: 0 12px 40px rgba(255,217,61,0.18); }
+
+  .cj-art {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: linear-gradient(180deg, #f5c16c, #e8a84c);
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .cj-art::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 25%;
+    width: 50%;
+    height: 12px;
+    background: #5a3520;
+    border-radius: 4px 4px 0 0;
+  }
 
   /* Chesstopia CSS-illustrated tile */
   .ct-art {
@@ -422,6 +446,13 @@
       <div class="tile-info">
         <div class="tile-name">Chesstopia</div>
         <div class="tile-desc">Chess with epic skins!</div>
+      </div>
+    </a>
+    <a href="chickenjump.html" class="tile tile-chickenjump">
+      <div class="cj-art">🐔</div>
+      <div class="tile-info">
+        <div class="tile-name">Chicken Jump</div>
+        <div class="tile-desc">Jump over blocks &mdash; reach 20 to win!</div>
       </div>
     </a>
   </div>
