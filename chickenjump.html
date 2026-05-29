@@ -40,9 +40,9 @@ canvas{display:block;margin:0 auto}
   <div class="how-to">
     <h3>How to Play</h3>
     <div class="step"><div class="step-num">1</div><p>Tap / Space to make your chicken jump</p></div>
-    <div class="step"><div class="step-num">2</div><p>Blocks slide onto your platform — jump to avoid them!</p></div>
-    <div class="step"><div class="step-num">3</div><p>Land on center of the block to score a point</p></div>
-    <div class="step"><div class="step-num">4</div><p>First to 20 points wins!</p></div>
+    <div class="step"><div class="step-num">2</div><p>Blocks slide onto your platform — jump to land on top of them</p></div>
+    <div class="step"><div class="step-num">3</div><p>Every successful landing scores +1 and stacks the block</p></div>
+    <div class="step"><div class="step-num">4</div><p>Get knocked off? No worries — just reset and keep jumping. Reach 20 to win!</p></div>
   </div>
   <button class="btn" onclick="startGame()">Play!</button>
 </div>
@@ -101,7 +101,6 @@ function newState() {
     blocks: [],
     stack: [],
     score: 0,
-    lives: 3,
     spawnTimer: 0,
     spawnInterval: 126,
     speed: 1.5,
@@ -282,17 +281,16 @@ function drawHUD() {
   ctx.fillStyle = 'rgba(255,255,255,.7)';
   ctx.fillText('/ ' + WIN_SCORE, 40, 70);
 
-  // Lives
-  ctx.font = '18px sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText('❤'.repeat(Math.max(0, state.lives)), canvas.width - 16, 50);
-
   // Landing feedback
   if (state.lastLand && state.frame % 60 < 40) {
-    ctx.fillStyle = state.lastLand === 'center' ? '#27ae60' : '#e74c3c';
+    let msg, color;
+    if (state.lastLand === 'center')   { msg = '+1 PERFECT!'; color = '#27ae60'; }
+    else if (state.lastLand === 'land') { msg = '+1';          color = '#27ae60'; }
+    else                                { msg = 'KNOCKED!';    color = '#e74c3c'; }
+    ctx.fillStyle = color;
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(state.lastLand === 'center' ? '+1 PERFECT!' : 'MISS!', canvas.width / 2, state.platform.y - 80);
+    ctx.fillText(msg, canvas.width / 2, state.platform.y - 80);
   }
 
   // Progress bar
@@ -398,44 +396,29 @@ function update() {
 
       // Check if chicken is on ground level (not jumping)
       if (ch.grounded) {
-        // Knocked off! Lose a life
-        s.lives--;
+        // Knocked off — bounce the chicken up and remove the block. No penalty;
+        // the player just doesn't score this one and lines up for the next.
         s.lastLand = 'hit';
         spawnLandParticles(ch.x, ch.y, false);
-
-        // Remove block
         s.blocks.splice(i, 1);
-
-        if (s.lives <= 0) {
-          gameOver(false);
-          return;
-        }
-        // Brief immunity - bounce chicken up
         ch.vy = JUMP_FORCE * 0.6;
         ch.grounded = false;
         continue;
       } else {
-        // Chicken is in the air - block stacks
-        // Check if landing is centered
+        // Chicken is in the air — successful landing: block stacks and scores.
+        s.score++;
         const distFromCenter = Math.abs(bCenter - platCenter);
-        const centerThreshold = s.platform.w * 0.3;
-
-        if (distFromCenter < centerThreshold) {
-          s.score++;
+        const centered = distFromCenter < s.platform.w * 0.3;
+        if (centered) {
           s.combo++;
           s.lastLand = 'center';
-          spawnLandParticles(bCenter, b.y, true);
         } else {
-          s.lastLand = 'off';
           s.combo = 0;
+          s.lastLand = 'land';
         }
-
-        // Stack the block
-        s.stack.push({
-          x: b.x, y: b.y, w: b.w, h: b.h, color: b.color
-        });
+        spawnLandParticles(bCenter, b.y, true);
+        s.stack.push({ x: b.x, y: b.y, w: b.w, h: b.h, color: b.color });
         s.blocks.splice(i, 1);
-
         if (s.score >= WIN_SCORE) {
           gameOver(true);
           return;
@@ -450,21 +433,16 @@ function update() {
     }
   }
 
-  // Chicken collision with moving blocks
+  // Chicken collision with moving blocks — knock chicken off, no penalty
   for (let i = s.blocks.length - 1; i >= 0; i--) {
     const b = s.blocks[i];
     if (b.landed) continue;
     if (ch.x + ch.w / 2 > b.x && ch.x - ch.w / 2 < b.x + b.w &&
         ch.y + ch.h / 2 > b.y && ch.y - ch.h / 2 < b.y + b.h) {
       if (ch.grounded) {
-        s.lives--;
         s.lastLand = 'hit';
         spawnLandParticles(ch.x, ch.y, false);
         s.blocks.splice(i, 1);
-        if (s.lives <= 0) {
-          gameOver(false);
-          return;
-        }
         ch.vy = JUMP_FORCE * 0.6;
         ch.grounded = false;
       }
