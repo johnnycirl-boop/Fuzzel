@@ -411,8 +411,8 @@
 
   /* ── Leaderboard button ── */
   .btn-leaderboard {
-    margin-top: 30px;
-    padding: 14px 36px;
+    margin: 0 0 30px;
+    padding: 12px 28px;
     font-size: 1.1rem;
     font-weight: 700;
     border: none;
@@ -543,6 +543,8 @@
   <h1 class="site-title">Fuzzel.ie</h1>
   <p class="tagline">Pick a game and play!</p>
 
+  <button class="btn-leaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
+
   <div class="tiles">
     <a href="fuzzel.html" class="tile tile-fuzzel">
       <img src="tile-fuzzel.png" alt="Fuzzle gameplay" class="tile-screenshot">
@@ -600,7 +602,6 @@
       </div>
     </a>
   </div>
-  <button class="btn-leaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
 </div>
 
 <!-- Leaderboard modal -->
@@ -612,6 +613,7 @@
     <button class="lb-tab" data-game="battleship" onclick="filterLB(this,'battleship')">Daphlship</button>
     <button class="lb-tab" data-game="roadrage" onclick="filterLB(this,'roadrage')">Road Rage</button>
     <button class="lb-tab" data-game="chickenjump" onclick="filterLB(this,'chickenjump')">Chicken Jump</button>
+    <button class="lb-tab" data-game="singball" onclick="filterLB(this,'singball')">SingBall</button>
   </div>
   <div class="lb-content" id="lbContent"><div class="lb-empty">Loading...</div></div>
   <button class="btn-close-lb" onclick="hideLeaderboard()">Close</button>
