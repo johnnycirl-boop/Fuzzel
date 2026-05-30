@@ -408,6 +408,117 @@
     .hero-logo { width: 360px; }
     .tile { padding: 0; }
   }
+
+  /* ── Leaderboard button ── */
+  .btn-leaderboard {
+    margin-top: 30px;
+    padding: 14px 36px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    color: #fff;
+    background: linear-gradient(135deg, #f1fa8c, #ffb86c);
+    color: #1a1a2e;
+    box-shadow: 0 4px 20px rgba(241,250,140,.3);
+    transition: transform .2s, box-shadow .2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-leaderboard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(241,250,140,.4);
+  }
+
+  /* ── Leaderboard modal ── */
+  .lb-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(10,10,20,0.92);
+    backdrop-filter: blur(20px);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    animation: fadeIn 0.3s ease;
+  }
+  .lb-overlay.show { display: flex; }
+  .lb-title {
+    font-size: 2rem;
+    background: linear-gradient(90deg, #f1fa8c, #ffb86c, #ff79c6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .lb-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .lb-tab {
+    padding: 7px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(255,255,255,.06);
+    color: #ccc;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .lb-tab:hover { background: rgba(255,255,255,.1); }
+  .lb-tab.active { border-color: #ffd93d; color: #ffd93d; background: rgba(255,217,61,.1); }
+  .lb-content {
+    width: 90%;
+    max-width: 500px;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  .lb-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .lb-table th {
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: #bd93f9;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid rgba(189,147,249,0.2);
+  }
+  .lb-table td {
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    color: #f8f8f2;
+  }
+  .lb-table .rank-cell { width: 50px; text-align: center; font-size: 1.2rem; }
+  .lb-table .score-cell { text-align: right; color: #50fa7b; font-weight: bold; }
+  .lb-table .date-cell { text-align: right; color: rgba(255,255,255,0.4); font-size: 0.8rem; }
+  .lb-empty {
+    color: rgba(255,255,255,0.3);
+    font-size: 1rem;
+    text-align: center;
+    padding: 30px;
+  }
+  .btn-close-lb {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: #8be9fd;
+    padding: 10px 30px;
+    border-radius: 12px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 8px;
+    transition: all 0.15s;
+  }
+  .btn-close-lb:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
 </style>
 </head>
 <body>
@@ -489,7 +600,71 @@
       </div>
     </a>
   </div>
+  <button class="btn-leaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
 </div>
+
+<!-- Leaderboard modal -->
+<div class="lb-overlay" id="lbOverlay">
+  <div class="lb-title">🏆 Leaderboard</div>
+  <div class="lb-tabs" id="lbTabs">
+    <button class="lb-tab active" data-game="" onclick="filterLB(this,'')">All Games</button>
+    <button class="lb-tab" data-game="fuzzle" onclick="filterLB(this,'fuzzle')">Fuzzle</button>
+    <button class="lb-tab" data-game="battleship" onclick="filterLB(this,'battleship')">Daphlship</button>
+    <button class="lb-tab" data-game="roadrage" onclick="filterLB(this,'roadrage')">Road Rage</button>
+    <button class="lb-tab" data-game="chickenjump" onclick="filterLB(this,'chickenjump')">Chicken Jump</button>
+  </div>
+  <div class="lb-content" id="lbContent"><div class="lb-empty">Loading...</div></div>
+  <button class="btn-close-lb" onclick="hideLeaderboard()">Close</button>
+</div>
+
+<script>
+async function fetchLB(game) {
+  try {
+    const url = game ? '/api/leaderboard?game=' + game : '/api/leaderboard';
+    const res = await fetch(url);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch { return []; }
+}
+
+function renderLB(container, rows) {
+  if (!rows.length) {
+    container.innerHTML = '<div class="lb-empty">No scores yet. Play a game and be the first!</div>';
+    return;
+  }
+  const icons = ['\u{1F947}','\u{1F948}','\u{1F949}'];
+  let html = '<table class="lb-table"><thead><tr><th>#</th><th>Name</th><th>Game</th><th style="text-align:right">Score</th><th style="text-align:right">Date</th></tr></thead><tbody>';
+  rows.forEach((r, i) => {
+    const rank = i < 3 ? icons[i] : (i + 1);
+    const date = new Date(r.created_at).toLocaleDateString();
+    const game = r.game || 'fuzzle';
+    html += '<tr><td class="rank-cell">' + rank + '</td><td>' + r.name + '</td><td>' + game + '</td><td class="score-cell">' + r.score + '</td><td class="date-cell">' + date + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+async function showLeaderboard() {
+  document.getElementById('lbOverlay').classList.add('show');
+  const content = document.getElementById('lbContent');
+  content.innerHTML = '<div class="lb-empty">Loading...</div>';
+  const rows = await fetchLB('');
+  renderLB(content, rows);
+}
+
+async function filterLB(btn, game) {
+  document.querySelectorAll('.lb-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const content = document.getElementById('lbContent');
+  content.innerHTML = '<div class="lb-empty">Loading...</div>';
+  const rows = await fetchLB(game);
+  renderLB(content, rows);
+}
+
+function hideLeaderboard() {
+  document.getElementById('lbOverlay').classList.remove('show');
+}
+</script>
 
 </body>
 </html>
