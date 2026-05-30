@@ -237,7 +237,9 @@ function drawTrail() {
 function drawBall() {
   const b = state.ball;
   const noteIdx = state.currentNote;
-  const color = noteIdx >= 0 ? NOTES[noteIdx].color : '#888';
+  // Use full 6-digit hex so the "+ '30'" / "+ 'aa'" alpha concatenations below
+  // produce a valid 8-digit color (#888 + 'aa' = invalid '#888aa')
+  const color = noteIdx >= 0 ? NOTES[noteIdx].color : '#888888';
 
   // Glow
   if (noteIdx >= 0) {
