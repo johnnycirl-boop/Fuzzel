@@ -166,6 +166,32 @@
   .tile-roadrage:hover { border-color: #ff5555; box-shadow: 0 12px 40px rgba(255,85,85,0.15); }
   .tile-chesstopia:hover { border-color: #c3a6ff; box-shadow: 0 12px 40px rgba(195,166,255,0.18); }
   .tile-chickenjump:hover { border-color: #ffd93d; box-shadow: 0 12px 40px rgba(255,217,61,0.18); }
+  .tile-singball:hover { border-color: #ff79c6; box-shadow: 0 12px 40px rgba(255,121,198,0.18); }
+
+  .sb-art {
+    width: 100%;
+    aspect-ratio: 16/10;
+    background: linear-gradient(135deg, #0a0a1e, #16213e);
+    border-radius: 20px 20px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .sb-art::after {
+    content: '🎵 🎶';
+    position: absolute;
+    font-size: 1.4rem;
+    bottom: 12px;
+    opacity: 0.5;
+    animation: sb-float 3s ease-in-out infinite;
+  }
+  @keyframes sb-float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
 
   .cj-art {
     width: 100%;
@@ -453,6 +479,13 @@
       <div class="tile-info">
         <div class="tile-name">Chicken Jump</div>
         <div class="tile-desc">Jump over blocks &mdash; reach 20 to win!</div>
+      </div>
+    </a>
+    <a href="singball.html" class="tile tile-singball">
+      <div class="sb-art">🎤</div>
+      <div class="tile-info">
+        <div class="tile-name">SingBall</div>
+        <div class="tile-desc">Sing Do Re Mi &mdash; control the ball!</div>
       </div>
     </a>
   </div>

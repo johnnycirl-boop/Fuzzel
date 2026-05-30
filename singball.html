@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SingBall - Fuzzel.ie</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:linear-gradient(135deg,#1a1a2e 0%,#16213e 40%,#0f3460 100%);font-family:'Segoe UI',system-ui,sans-serif;color:#fff;overflow:hidden;min-height:100vh}
+canvas{display:block;margin:0 auto}
+
+#back-btn{position:fixed;top:10px;left:10px;z-index:50;padding:8px 16px;font-size:13px;font-weight:700;border:none;border-radius:8px;cursor:pointer;color:#fff;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);text-decoration:none;transition:background .2s}
+#back-btn:hover{background:rgba(255,255,255,.2)}
+
+.overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:30;background:rgba(10,10,30,.92);backdrop-filter:blur(8px);color:#fff;text-align:center;transition:opacity .3s}
+.overlay.hidden{opacity:0;pointer-events:none}
+.overlay h1{font-size:clamp(32px,7vw,52px);margin-bottom:8px;background:linear-gradient(90deg,#ff79c6,#ffd93d,#50fa7b,#8be9fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.overlay p{font-size:clamp(14px,3vw,18px);opacity:.8;max-width:400px;line-height:1.6;margin-bottom:8px}
+.btn{display:inline-block;padding:14px 40px;font-size:20px;font-weight:700;border:none;border-radius:12px;cursor:pointer;color:#fff;background:linear-gradient(135deg,#ff79c6,#bd93f9);box-shadow:0 4px 20px rgba(189,147,249,.4);transition:transform .15s;margin-top:16px}
+.btn:hover{transform:scale(1.05)}
+
+.note-labels{position:fixed;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:0;z-index:10;pointer-events:none}
+.note-label{padding:4px 10px;font-size:clamp(11px,2vw,14px);font-weight:700;border-radius:6px;text-align:center;transition:all .15s;opacity:.3;min-width:40px}
+.note-label.active{opacity:1;transform:scale(1.15)}
+
+#mic-status{position:fixed;top:10px;right:10px;z-index:50;font-size:12px;padding:6px 12px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1)}
+#mic-status.listening{border-color:rgba(80,250,123,.4);color:#50fa7b}
+
+.how-to{max-width:380px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;margin:12px;text-align:left}
+.how-to h3{font-size:16px;color:#ffd93d;margin-bottom:10px;text-align:center}
+.how-to .step{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:14px;opacity:.8}
+.how-to .step-icon{font-size:20px;flex-shrink:0}
+
+.scale-display{display:flex;gap:6px;margin:12px 0;justify-content:center;flex-wrap:wrap}
+.scale-note{padding:6px 12px;border-radius:8px;font-weight:700;font-size:14px}
+</style>
+</head>
+<body>
+
+<a id="back-btn" href="index.html">← Back</a>
+<div id="mic-status">🎤 Tap to start</div>
+
+<!-- Start screen -->
+<div class="overlay" id="start-screen">
+  <h1>🎵 SingBall</h1>
+  <p>Sing the notes and watch the ball fly!</p>
+  <div class="scale-display">
+    <span class="scale-note" style="background:#e74c3c">Do</span>
+    <span class="scale-note" style="background:#e67e22">Re</span>
+    <span class="scale-note" style="background:#f1c40f;color:#333">Mi</span>
+    <span class="scale-note" style="background:#2ecc71">Fa</span>
+    <span class="scale-note" style="background:#3498db">Sol</span>
+    <span class="scale-note" style="background:#9b59b6">La</span>
+    <span class="scale-note" style="background:#e91e8b">Ti</span>
+  </div>
+  <div class="how-to">
+    <h3>How to Play</h3>
+    <div class="step"><span class="step-icon">🎤</span><span>Sing Do, Re, Mi, Fa, Sol, La, Ti into your mic</span></div>
+    <div class="step"><span class="step-icon">⬆️</span><span>Higher pitch = ball goes higher</span></div>
+    <div class="step"><span class="step-icon">🎯</span><span>Hit the target notes as they scroll by to score!</span></div>
+    <div class="step"><span class="step-icon">⭐</span><span>Keep a streak going for bonus points!</span></div>
+  </div>
+  <button class="btn" onclick="startGame()">Start Singing!</button>
+  <p style="font-size:12px;opacity:.4;margin-top:8px">Requires microphone access</p>
+</div>
+
+<!-- Note labels on right side -->
+<div class="note-labels" id="noteLabels"></div>
+
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ── Solfege notes & colors ──
+const NOTES = [
+  { name: 'Do',  freq: 262, color: '#e74c3c' },
+  { name: 'Re',  freq: 294, color: '#e67e22' },
+  { name: 'Mi',  freq: 330, color: '#f1c40f' },
+  { name: 'Fa',  freq: 349, color: '#2ecc71' },
+  { name: 'Sol', freq: 392, color: '#3498db' },
+  { name: 'La',  freq: 440, color: '#9b59b6' },
+  { name: 'Ti',  freq: 494, color: '#e91e8b' },
+];
+
+const MIN_FREQ = 200;
+const MAX_FREQ = 550;
+
+// ── Audio ──
+let audioCtx, analyser, dataArray, source, micStream;
+let detectedFreq = 0, smoothFreq = 0;
+
+async function setupAudio() {
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.8;
+    source = audioCtx.createMediaStreamSource(micStream);
+    source.connect(analyser);
+    dataArray = new Float32Array(analyser.fftSize);
+    document.getElementById('mic-status').textContent = '🎤 Listening...';
+    document.getElementById('mic-status').classList.add('listening');
+    return true;
+  } catch (e) {
+    document.getElementById('mic-status').textContent = '🚫 Mic denied';
+    return false;
+  }
+}
+
+function detectPitch() {
+  if (!analyser) return 0;
+  analyser.getFloatTimeDomainData(dataArray);
+
+  // Autocorrelation pitch detection
+  const bufLen = dataArray.length;
+  let rms = 0;
+  for (let i = 0; i < bufLen; i++) rms += dataArray[i] * dataArray[i];
+  rms = Math.sqrt(rms / bufLen);
+  if (rms < 0.01) return 0; // too quiet
+
+  let r1 = 0, r2 = bufLen - 1;
+  const threshold = 0.2;
+  for (let i = 0; i < bufLen / 2; i++) {
+    if (Math.abs(dataArray[i]) < threshold) { r1 = i; break; }
+  }
+  for (let i = 1; i < bufLen / 2; i++) {
+    if (Math.abs(dataArray[bufLen - i]) < threshold) { r2 = bufLen - i; break; }
+  }
+
+  const buf = dataArray.slice(r1, r2);
+  const len = buf.length;
+  const corr = new Array(len).fill(0);
+  for (let i = 0; i < len; i++) {
+    for (let j = 0; j < len - i; j++) {
+      corr[i] += buf[j] * buf[j + i];
+    }
+  }
+
+  let d = 0;
+  while (d < len && corr[d] > corr[d + 1]) d++;
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < len; i++) {
+    if (corr[i] > maxVal) { maxVal = corr[i]; maxPos = i; }
+  }
+  if (maxPos <= 0) return 0;
+
+  const freq = audioCtx.sampleRate / maxPos;
+  if (freq < 80 || freq > 800) return 0;
+  return freq;
+}
+
+function freqToNoteIndex(freq) {
+  if (freq < MIN_FREQ) return -1;
+  let closest = 0, minDist = Infinity;
+  for (let i = 0; i < NOTES.length; i++) {
+    const dist = Math.abs(freq - NOTES[i].freq);
+    if (dist < minDist) { minDist = dist; closest = i; }
+  }
+  if (minDist > 40) return -1;
+  return closest;
+}
+
+function freqToY(freq) {
+  const margin = 80;
+  const top = margin;
+  const bottom = canvas.height - margin;
+  const clamped = Math.max(MIN_FREQ, Math.min(MAX_FREQ, freq));
+  const t = (clamped - MIN_FREQ) / (MAX_FREQ - MIN_FREQ);
+  return bottom - t * (bottom - top);
+}
+
+// ── Game state ──
+let state;
+
+function newState() {
+  return {
+    running: false,
+    ball: { x: canvas.width * 0.3, y: canvas.height / 2, targetY: canvas.height / 2, r: 20, glow: 0 },
+    targets: [],
+    score: 0,
+    streak: 0,
+    bestStreak: 0,
+    particles: [],
+    trail: [],
+    spawnTimer: 0,
+    frame: 0,
+    currentNote: -1,
+    noteHoldTime: 0
+  };
+}
+
+// ── Drawing ──
+function drawBg() {
+  // Gradient already set by CSS, just clear
+  ctx.fillStyle = 'rgba(10,10,30,0.3)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Note lane lines
+  const margin = 80;
+  ctx.strokeStyle = 'rgba(255,255,255,.04)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < NOTES.length; i++) {
+    const y = freqToY(NOTES[i].freq);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(canvas.width, y);
+    ctx.stroke();
+  }
+}
+
+function drawTrail() {
+  if (state.trail.length < 2) return;
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  for (let i = 1; i < state.trail.length; i++) {
+    const t = i / state.trail.length;
+    ctx.globalAlpha = t * 0.5;
+    ctx.strokeStyle = state.trail[i].color || '#fff';
+    ctx.beginPath();
+    ctx.moveTo(state.trail[i-1].x, state.trail[i-1].y);
+    ctx.lineTo(state.trail[i].x, state.trail[i].y);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawBall() {
+  const b = state.ball;
+  const noteIdx = state.currentNote;
+  const color = noteIdx >= 0 ? NOTES[noteIdx].color : '#888';
+
+  // Glow
+  if (noteIdx >= 0) {
+    ctx.fillStyle = color + '30';
+    ctx.beginPath();
+    ctx.arc(b.x, b.y, b.r + 15 + Math.sin(state.frame * 0.1) * 5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Ball shadow
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
+  ctx.beginPath();
+  ctx.ellipse(b.x + 3, b.y + 3, b.r, b.r * 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ball
+  const grd = ctx.createRadialGradient(b.x - 6, b.y - 6, 2, b.x, b.y, b.r);
+  grd.addColorStop(0, '#fff');
+  grd.addColorStop(0.4, color);
+  grd.addColorStop(1, color + 'aa');
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Note name on ball
+  if (noteIdx >= 0) {
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(NOTES[noteIdx].name, b.x, b.y);
+  }
+}
+
+function drawTargets() {
+  for (const t of state.targets) {
+    const noteColor = NOTES[t.noteIdx].color;
+    ctx.globalAlpha = t.hit ? 0.2 : 0.7;
+
+    // Target ring
+    ctx.strokeStyle = noteColor;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 28, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Inner circle
+    ctx.fillStyle = noteColor + '20';
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 26, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Note name
+    ctx.fillStyle = noteColor;
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(NOTES[t.noteIdx].name, t.x, t.y);
+
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawParticles() {
+  for (const p of state.particles) {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle = p.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawHUD() {
+  // Score
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(state.score, 20, 16);
+  ctx.font = '14px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,.5)';
+  ctx.fillText('points', 20, 48);
+
+  // Streak
+  if (state.streak >= 2) {
+    ctx.fillStyle = '#ffd93d';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🔥 ' + state.streak + ' streak!', canvas.width / 2, 20);
+  }
+
+  // Detected freq debug (subtle)
+  ctx.fillStyle = 'rgba(255,255,255,.15)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText(Math.round(smoothFreq) + ' Hz', 20, canvas.height - 16);
+}
+
+// ── Update note labels ──
+function updateNoteLabels() {
+  const container = document.getElementById('noteLabels');
+  if (container.children.length === 0) {
+    for (let i = NOTES.length - 1; i >= 0; i--) {
+      const div = document.createElement('div');
+      div.className = 'note-label';
+      div.textContent = NOTES[i].name;
+      div.style.background = NOTES[i].color;
+      div.style.color = i === 2 ? '#333' : '#fff';
+      div.id = 'nl-' + i;
+      container.appendChild(div);
+    }
+  }
+  for (let i = 0; i < NOTES.length; i++) {
+    const el = document.getElementById('nl-' + i);
+    el.classList.toggle('active', i === state.currentNote);
+  }
+}
+
+// ── Particles ──
+function spawnHitParticles(x, y, color) {
+  for (let i = 0; i < 15; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 4;
+    state.particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: 2 + Math.random() * 4,
+      life: 1,
+      decay: 0.02 + Math.random() * 0.02,
+      color
+    });
+  }
+}
+
+// ── Update ──
+function update() {
+  const s = state;
+  s.frame++;
+
+  // Detect pitch
+  detectedFreq = detectPitch();
+  if (detectedFreq > 0) {
+    smoothFreq += (detectedFreq - smoothFreq) * 0.3;
+  } else {
+    smoothFreq *= 0.95;
+  }
+
+  // Map to note
+  const prevNote = s.currentNote;
+  s.currentNote = freqToNoteIndex(smoothFreq);
+
+  // Ball target position
+  if (smoothFreq > MIN_FREQ * 0.8) {
+    s.ball.targetY = freqToY(smoothFreq);
+  } else {
+    s.ball.targetY = canvas.height / 2;
+  }
+
+  // Smooth ball movement
+  s.ball.y += (s.ball.targetY - s.ball.y) * 0.15;
+
+  // Trail
+  const noteIdx = s.currentNote;
+  const trailColor = noteIdx >= 0 ? NOTES[noteIdx].color : '#555';
+  s.trail.push({ x: s.ball.x, y: s.ball.y, color: trailColor });
+  if (s.trail.length > 40) s.trail.shift();
+
+  // Spawn targets
+  s.spawnTimer++;
+  if (s.spawnTimer >= 90) {
+    s.spawnTimer = 0;
+    const ni = Math.floor(Math.random() * NOTES.length);
+    s.targets.push({
+      x: canvas.width + 40,
+      y: freqToY(NOTES[ni].freq),
+      noteIdx: ni,
+      hit: false
+    });
+  }
+
+  // Move targets
+  const speed = 2.5 + s.score * 0.05;
+  for (let i = s.targets.length - 1; i >= 0; i--) {
+    const t = s.targets[i];
+    t.x -= speed;
+
+    // Check hit
+    if (!t.hit && Math.abs(t.x - s.ball.x) < 35 && Math.abs(t.y - s.ball.y) < 35 && s.currentNote === t.noteIdx) {
+      t.hit = true;
+      s.score += (1 + Math.floor(s.streak / 3));
+      s.streak++;
+      if (s.streak > s.bestStreak) s.bestStreak = s.streak;
+      spawnHitParticles(t.x, t.y, NOTES[t.noteIdx].color);
+    }
+
+    // Missed
+    if (!t.hit && t.x < s.ball.x - 50) {
+      t.hit = true;
+      s.streak = 0;
+    }
+
+    // Remove off screen
+    if (t.x < -60) s.targets.splice(i, 1);
+  }
+
+  // Particles
+  for (let i = s.particles.length - 1; i >= 0; i--) {
+    const p = s.particles[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05;
+    p.life -= p.decay;
+    if (p.life <= 0) s.particles.splice(i, 1);
+  }
+
+  updateNoteLabels();
+}
+
+// ── Draw ──
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background
+  const bgGrd = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  bgGrd.addColorStop(0, '#0a0a1e');
+  bgGrd.addColorStop(0.5, '#16213e');
+  bgGrd.addColorStop(1, '#0f3460');
+  ctx.fillStyle = bgGrd;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawBg();
+  drawTrail();
+  drawTargets();
+  drawBall();
+  drawParticles();
+  drawHUD();
+}
+
+// ── Game loop ──
+let animId;
+function loop() {
+  if (!state || !state.running) return;
+  update();
+  draw();
+  animId = requestAnimationFrame(loop);
+}
+
+async function startGame() {
+  const ok = await setupAudio();
+  if (!ok) {
+    alert('Microphone access is required to play SingBall!');
+    return;
+  }
+  state = newState();
+  state.running = true;
+  document.getElementById('start-screen').classList.add('hidden');
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+</script>
+</body>
+</html>
