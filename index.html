@@ -167,19 +167,6 @@
   .tile-chesstopia:hover { border-color: #c3a6ff; box-shadow: 0 12px 40px rgba(195,166,255,0.18); }
   .tile-chickenjump:hover { border-color: #ffd93d; box-shadow: 0 12px 40px rgba(255,217,61,0.18); }
   .tile-singball:hover { border-color: #ff79c6; box-shadow: 0 12px 40px rgba(255,121,198,0.18); }
-  .tile-bubblepop:hover { border-color: #50fa7b; box-shadow: 0 12px 40px rgba(80,250,123,0.18); }
-
-  .bp-art {
-    width: 100%;
-    aspect-ratio: 16/10;
-    background: linear-gradient(135deg, #0a0a1e, #16213e);
-    border-radius: 20px 20px 0 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 4rem;
-    position: relative;
-  }
 
   .sb-art {
     width: 100%;
@@ -424,8 +411,8 @@
 
   /* ── Leaderboard button ── */
   .btn-leaderboard {
-    margin-top: 30px;
-    padding: 14px 36px;
+    margin: 0 0 30px;
+    padding: 12px 28px;
     font-size: 1.1rem;
     font-weight: 700;
     border: none;
@@ -556,6 +543,8 @@
   <h1 class="site-title">Fuzzel.ie</h1>
   <p class="tagline">Pick a game and play!</p>
 
+  <button class="btn-leaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
+
   <div class="tiles">
     <a href="fuzzel.html" class="tile tile-fuzzel">
       <img src="tile-fuzzel.png" alt="Fuzzle gameplay" class="tile-screenshot">
@@ -612,13 +601,6 @@
         <div class="tile-desc">Sing Do Re Mi &mdash; control the ball!</div>
       </div>
     </a>
-    <a href="bubblepop.html" class="tile tile-bubblepop">
-      <div class="bp-art">🫧</div>
-      <div class="tile-info">
-        <div class="tile-name">Bubble Pop</div>
-        <div class="tile-desc">Match colors to pop them all!</div>
-      </div>
-    </a>
   </div>
   <button class="btn-leaderboard" onclick="showLeaderboard()">🏆 Leaderboard</button>
 </div>
@@ -632,6 +614,7 @@
     <button class="lb-tab" data-game="battleship" onclick="filterLB(this,'battleship')">Daphlship</button>
     <button class="lb-tab" data-game="roadrage" onclick="filterLB(this,'roadrage')">Road Rage</button>
     <button class="lb-tab" data-game="chickenjump" onclick="filterLB(this,'chickenjump')">Chicken Jump</button>
+    <button class="lb-tab" data-game="singball" onclick="filterLB(this,'singball')">SingBall</button>
   </div>
   <div class="lb-content" id="lbContent"><div class="lb-empty">Loading...</div></div>
   <button class="btn-close-lb" onclick="hideLeaderboard()">Close</button>

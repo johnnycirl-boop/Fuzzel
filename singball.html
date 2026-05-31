@@ -33,6 +33,33 @@ canvas{display:block;margin:0 auto}
 
 .scale-display{display:flex;gap:6px;margin:12px 0;justify-content:center;flex-wrap:wrap}
 .scale-note{padding:6px 12px;border-radius:8px;font-weight:700;font-size:14px}
+
+/* Game-over leaderboard panel */
+.go-content{max-height:92vh;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;align-items:center;gap:12px;max-width:520px;width:94%}
+.go-content::-webkit-scrollbar{width:6px}
+.go-content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.18);border-radius:3px}
+.go-name-entry{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:380px;margin-top:6px}
+.go-name-chips-label{font-size:13px;opacity:.7}
+.go-name-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:100%}
+.go-name-chip{padding:6px 14px;border-radius:18px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:#fff;font-size:14px;cursor:pointer;transition:all .15s;font-family:inherit}
+.go-name-chip:hover{background:rgba(189,147,249,.2);border-color:rgba(189,147,249,.5)}
+.go-name-chip.selected{background:linear-gradient(135deg,#bd93f9,#ff79c6);border-color:#bd93f9}
+.go-name-input{padding:10px 16px;border-radius:10px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:#fff;font-size:16px;width:240px;max-width:100%;text-align:center;outline:none;transition:border-color .2s;font-family:inherit}
+.go-name-input:focus{border-color:#bd93f9}
+.btn-save-score{padding:10px 28px;background:linear-gradient(135deg,#ffd93d,#f1fa8c);color:#1a1a2e;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .15s;font-family:inherit}
+.btn-save-score:hover{transform:scale(1.04)}
+.go-saved-msg{min-height:20px;font-size:14px;color:#50fa7b}
+.go-leaderboard{width:100%;margin-top:4px}
+.lb-table{width:100%;border-collapse:collapse;font-size:14px;color:#fff;background:rgba(255,255,255,.03);border-radius:10px;overflow:hidden}
+.lb-table th{padding:9px 8px;border-bottom:1px solid rgba(255,255,255,.15);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#c3a6ff;text-align:left}
+.lb-table th.right{text-align:right}
+.lb-table td{padding:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.lb-table tbody tr:last-child td{border-bottom:none}
+.lb-table .score-cell{text-align:right;font-weight:700;color:#ffd93d}
+.lb-table .date-cell{text-align:right;font-size:12px;opacity:.6}
+.lb-table .rank-cell{width:32px;text-align:center}
+.lb-table .current-player{background:rgba(189,147,249,.18)}
+.lb-empty{padding:18px;opacity:.6;font-size:14px;text-align:center}
 </style>
 </head>
 <body>
@@ -64,6 +91,26 @@ canvas{display:block;margin:0 auto}
   <p style="font-size:12px;opacity:.4;margin-top:8px">Requires microphone access</p>
 </div>
 
+<!-- Game over screen -->
+<div class="overlay hidden" id="game-over-screen">
+  <div class="go-content">
+    <h1>🎵 Out of tune!</h1>
+    <p>You scored <b id="goScore" style="color:#ffd93d">0</b> &nbsp;·&nbsp; Best streak: <b id="goBestStreak">0</b></p>
+
+    <div class="go-name-entry" id="goNameEntry">
+      <div class="go-name-chips-label" id="goNameChipsLabel" style="display:none">Already on the board? Tap your name:</div>
+      <div class="go-name-chips" id="goNameChips"></div>
+      <input class="go-name-input" id="goNameInput" placeholder="Your name..." maxlength="12" autocomplete="off" spellcheck="false">
+      <button class="btn-save-score" onclick="saveScore()">Save Score</button>
+    </div>
+    <div class="go-saved-msg" id="goSavedMsg"></div>
+
+    <div class="go-leaderboard" id="goLeaderboard"></div>
+
+    <button class="btn" onclick="restartGame()">Sing Again</button>
+  </div>
+</div>
+
 <!-- Note labels on right side -->
 <div class="note-labels" id="noteLabels"></div>
 
@@ -93,6 +140,7 @@ const NOTES = [
 
 const MIN_FREQ = 200;
 const MAX_FREQ = 550;
+const MAX_MISSES = 5;
 
 // ── Audio ──
 let audioCtx, analyser, dataArray, source, micStream;
@@ -190,6 +238,7 @@ function newState() {
     score: 0,
     streak: 0,
     bestStreak: 0,
+    misses: 0,
     particles: [],
     trail: [],
     spawnTimer: 0,
@@ -237,7 +286,9 @@ function drawTrail() {
 function drawBall() {
   const b = state.ball;
   const noteIdx = state.currentNote;
-  const color = noteIdx >= 0 ? NOTES[noteIdx].color : '#888';
+  // Use full 6-digit hex so the "+ '30'" / "+ 'aa'" alpha concatenations below
+  // produce a valid 8-digit color (#888 + 'aa' = invalid '#888aa')
+  const color = noteIdx >= 0 ? NOTES[noteIdx].color : '#888888';
 
   // Glow
   if (noteIdx >= 0) {
@@ -331,6 +382,13 @@ function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillText('🔥 ' + state.streak + ' streak!', canvas.width / 2, 20);
   }
+
+  // Lives (remaining misses)
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#fff';
+  const heartsLeft = MAX_MISSES - state.misses;
+  ctx.fillText('♥'.repeat(heartsLeft) + '♡'.repeat(state.misses), canvas.width - 80, 18);
 
   // Detected freq debug (subtle)
   ctx.fillStyle = 'rgba(255,255,255,.15)';
@@ -441,6 +499,11 @@ function update() {
     if (!t.hit && t.x < s.ball.x - 50) {
       t.hit = true;
       s.streak = 0;
+      s.misses++;
+      if (s.misses >= MAX_MISSES) {
+        gameOver();
+        return;
+      }
     }
 
     // Remove off screen
@@ -498,9 +561,161 @@ async function startGame() {
   state = newState();
   state.running = true;
   document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('game-over-screen').classList.add('hidden');
   if (animId) cancelAnimationFrame(animId);
   loop();
 }
+
+function restartGame() {
+  state = newState();
+  state.running = true;
+  document.getElementById('game-over-screen').classList.add('hidden');
+  if (animId) cancelAnimationFrame(animId);
+  loop();
+}
+
+function gameOver() {
+  state.running = false;
+  document.getElementById('goScore').textContent = state.score;
+  document.getElementById('goBestStreak').textContent = state.bestStreak;
+
+  // Reset name entry / leaderboard panel
+  document.getElementById('goNameEntry').style.display = 'flex';
+  document.getElementById('goNameInput').value = '';
+  document.getElementById('goSavedMsg').textContent = '';
+  document.getElementById('goLeaderboard').textContent = '';
+  document.getElementById('goNameChips').textContent = '';
+  document.getElementById('goNameChipsLabel').style.display = 'none';
+  lastSavedId = null;
+
+  document.getElementById('game-over-screen').classList.remove('hidden');
+
+  // Populate returning-player chips (from any game) so SingBall picks up names
+  // from across the rest of Fuzzel.ie
+  fetchAllNames().then(names => {
+    if (!names.length) return;
+    const chipsEl = document.getElementById('goNameChips');
+    document.getElementById('goNameChipsLabel').style.display = 'block';
+    names.forEach(n => {
+      const chip = document.createElement('button');
+      chip.className = 'go-name-chip';
+      chip.type = 'button';
+      chip.textContent = n;
+      chip.onclick = () => {
+        document.getElementById('goNameInput').value = n;
+        chipsEl.querySelectorAll('.go-name-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+      };
+      chipsEl.appendChild(chip);
+    });
+  });
+
+  // Preload SingBall leaderboard
+  fetchLeaderboard('singball').then(board => {
+    renderLeaderboardTable(document.getElementById('goLeaderboard'), board, null);
+  });
+}
+
+/* ── Leaderboard ── */
+let lastSavedId = null;
+
+async function fetchLeaderboard(game) {
+  try {
+    const q = game ? '?game=' + encodeURIComponent(game) : '';
+    const res = await fetch('/api/leaderboard' + q);
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+async function fetchAllNames() {
+  try {
+    const games = ['fuzzle', 'roadrage', 'chickenjump', 'singball'];
+    const lists = await Promise.all(games.map(g =>
+      fetch('/api/leaderboard?game=' + g).then(r => r.ok ? r.json() : [])
+    ));
+    return [...new Set(lists.flat().map(e => e.name))];
+  } catch {
+    return [];
+  }
+}
+
+async function saveToLeaderboard(name, sc) {
+  try {
+    const res = await fetch('/api/leaderboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, score: sc, difficulty: 'classic', game: 'singball' })
+    });
+    if (!res.ok) throw new Error();
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+function renderLeaderboardTable(container, board, highlightId) {
+  container.textContent = '';
+  if (!board || board.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'lb-empty';
+    empty.textContent = 'No scores yet. Be the first!';
+    container.appendChild(empty);
+    return;
+  }
+  const ranks = ['\u{1F947}', '\u{1F948}', '\u{1F949}'];
+  const t = document.createElement('table');
+  t.className = 'lb-table';
+  const thead = t.createTHead();
+  const hr = thead.insertRow();
+  ['#', 'Name', 'Score', 'Date'].forEach((h, i) => {
+    const th = document.createElement('th');
+    th.textContent = h;
+    if (i >= 2) th.className = 'right';
+    hr.appendChild(th);
+  });
+  const tb = t.createTBody();
+  board.forEach((e, i) => {
+    const r = tb.insertRow();
+    if (e.id === highlightId) r.className = 'current-player';
+    const rc = r.insertCell();
+    rc.className = 'rank-cell';
+    rc.textContent = i < 3 ? ranks[i] : (i + 1);
+    r.insertCell().textContent = e.name;
+    const sc = r.insertCell();
+    sc.className = 'score-cell';
+    sc.textContent = e.score;
+    const dc = r.insertCell();
+    dc.className = 'date-cell';
+    dc.textContent = new Date(e.created_at).toLocaleDateString();
+  });
+  container.appendChild(t);
+}
+
+async function saveScore() {
+  const input = document.getElementById('goNameInput');
+  let name = input.value.trim() || 'Player';
+  if (name.length > 12) name = name.slice(0, 12);
+  document.getElementById('goNameEntry').style.display = 'none';
+  document.getElementById('goSavedMsg').textContent = 'Saving…';
+  const saved = await saveToLeaderboard(name, state.score);
+  lastSavedId = saved ? saved.id : null;
+  if (!saved) {
+    document.getElementById('goSavedMsg').textContent = 'Could not save score.';
+  } else if (saved.score > state.score) {
+    document.getElementById('goSavedMsg').textContent = `Your best is ${saved.score}, ${name}!`;
+  } else {
+    document.getElementById('goSavedMsg').textContent = `Score saved, ${name}!`;
+  }
+  const board = await fetchLeaderboard('singball');
+  renderLeaderboardTable(document.getElementById('goLeaderboard'), board, lastSavedId);
+}
+
+document.getElementById('goNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveScore();
+});
 </script>
 </body>
 </html>

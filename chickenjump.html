@@ -40,9 +40,9 @@ canvas{display:block;margin:0 auto}
   <div class="how-to">
     <h3>How to Play</h3>
     <div class="step"><div class="step-num">1</div><p>Tap / Space to make your chicken jump</p></div>
-    <div class="step"><div class="step-num">2</div><p>Blocks slide onto your platform — jump to avoid them!</p></div>
-    <div class="step"><div class="step-num">3</div><p>Land on center of the block to score a point</p></div>
-    <div class="step"><div class="step-num">4</div><p>First to 20 points wins!</p></div>
+    <div class="step"><div class="step-num">2</div><p>Blocks slide onto your platform — jump to land on top of them</p></div>
+    <div class="step"><div class="step-num">3</div><p>Every successful landing scores +1 and stacks the block</p></div>
+    <div class="step"><div class="step-num">4</div><p>Get knocked off? No worries — just reset and keep jumping. Reach 20 to win!</p></div>
   </div>
   <button class="btn" onclick="startGame()">Play!</button>
 </div>
@@ -87,11 +87,20 @@ function newState() {
   const platY = canvas.height * 0.7;
   const platW = 120;
   const platX = (canvas.width - platW) / 2;
+  // Starting block — chicken stands on this from the very first frame
+  const startBW = 70;
+  const startBH = 18;
+  const startBlock = {
+    x: platX + (platW - startBW) / 2,
+    y: platY - startBH,
+    w: startBW, h: startBH,
+    color: '#6b3fa0'
+  };
   return {
     running: false,
     chicken: {
       x: canvas.width / 2,
-      y: platY - 40,
+      y: startBlock.y - 36 / 2 - 2,
       w: 36, h: 36,
       vy: 0,
       grounded: true,
@@ -99,12 +108,11 @@ function newState() {
     },
     platform: { x: platX, y: platY, w: platW, h: 16 },
     blocks: [],
-    stack: [],
+    stack: [startBlock],
     score: 0,
-    lives: 3,
     spawnTimer: 0,
-    spawnInterval: 90,
-    speed: 2.5,
+    spawnInterval: 126,
+    speed: 1.5,
     frame: 0,
     clouds: Array.from({length: 5}, () => ({
       x: Math.random() * 480,
@@ -282,17 +290,16 @@ function drawHUD() {
   ctx.fillStyle = 'rgba(255,255,255,.7)';
   ctx.fillText('/ ' + WIN_SCORE, 40, 70);
 
-  // Lives
-  ctx.font = '18px sans-serif';
-  ctx.textAlign = 'right';
-  ctx.fillText('❤'.repeat(Math.max(0, state.lives)), canvas.width - 16, 50);
-
   // Landing feedback
   if (state.lastLand && state.frame % 60 < 40) {
-    ctx.fillStyle = state.lastLand === 'center' ? '#27ae60' : '#e74c3c';
+    let msg, color;
+    if (state.lastLand === 'center')   { msg = '+1 PERFECT!'; color = '#27ae60'; }
+    else if (state.lastLand === 'land') { msg = '+1';          color = '#27ae60'; }
+    else                                { msg = 'KNOCKED!';    color = '#e74c3c'; }
+    ctx.fillStyle = color;
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText(state.lastLand === 'center' ? '+1 PERFECT!' : 'MISS!', canvas.width / 2, state.platform.y - 80);
+    ctx.fillText(msg, canvas.width / 2, state.platform.y - 80);
   }
 
   // Progress bar
@@ -357,83 +364,63 @@ function update() {
     ch.jumpCount = 0;
   }
 
-  // Spawn blocks
+  // Spawn blocks — always from the left, moving right
   s.spawnTimer++;
-  const interval = Math.max(40, s.spawnInterval - s.score * 2);
+  // Spawn interval ramps from 126 → 45 frames as score climbs (gentler at start, faster late)
+  const interval = Math.max(45, s.spawnInterval - s.score * 4);
   if (s.spawnTimer >= interval) {
     s.spawnTimer = 0;
-    const fromLeft = Math.random() > 0.5;
     const bw = 40 + Math.random() * 40;
     const bh = 14 + Math.random() * 8;
     const color = BLOCK_COLORS[Math.floor(Math.random() * BLOCK_COLORS.length)];
-    const speed = s.speed + s.score * 0.08 + Math.random();
+    // Block speed ramps from 1.5 → ~5.5 as score climbs (slower opening, harder finish)
+    const speed = s.speed + s.score * 0.18 + Math.random() * 0.6;
     s.blocks.push({
-      x: fromLeft ? -bw : canvas.width,
+      x: -bw,
       y: topY - bh,
       w: bw, h: bh,
-      vx: fromLeft ? speed : -speed,
+      vx: speed,
       color,
       landed: false
     });
   }
 
-  // Update blocks
-  const platLeft = s.platform.x;
-  const platRight = s.platform.x + s.platform.w;
-  const platCenter = s.platform.x + s.platform.w / 2;
+  // Update blocks. New rules:
+  // - Blocks always come from the left and sweep right
+  // - Block only stops when it actually meets the chicken's column
+  //   (not just because it entered the platform area)
+  // - If chicken is grounded when block arrives → block knocks chicken off,
+  //   block is removed, chicken bounces and respawns on top of the stack
+  // - If chicken is in the air → block stops, snaps under the chicken, joins
+  //   the stack and scores +1
+  const chLeft = ch.x - ch.w / 2;
+  const chRight = ch.x + ch.w / 2;
 
   for (let i = s.blocks.length - 1; i >= 0; i--) {
     const b = s.blocks[i];
     b.x += b.vx;
 
-    // Check if block is on platform area
-    const bCenter = b.x + b.w / 2;
-    const onPlatform = b.x + b.w > platLeft && b.x < platRight;
-
-    if (onPlatform && !b.landed) {
-      b.landed = true;
-      b.vx = 0;
-
-      // Check if chicken is on ground level (not jumping)
+    const meetsChicken = !b.landed && b.x + b.w >= chLeft && b.x <= chRight;
+    if (meetsChicken) {
       if (ch.grounded) {
-        // Knocked off! Lose a life
-        s.lives--;
+        // Knock chicken off — no penalty, no scoring. Block disappears.
         s.lastLand = 'hit';
         spawnLandParticles(ch.x, ch.y, false);
-
-        // Remove block
         s.blocks.splice(i, 1);
-
-        if (s.lives <= 0) {
-          gameOver(false);
-          return;
-        }
-        // Brief immunity - bounce chicken up
         ch.vy = JUMP_FORCE * 0.6;
         ch.grounded = false;
         continue;
       } else {
-        // Chicken is in the air - block stacks
-        // Check if landing is centered
-        const distFromCenter = Math.abs(bCenter - platCenter);
-        const centerThreshold = s.platform.w * 0.3;
-
-        if (distFromCenter < centerThreshold) {
-          s.score++;
-          s.combo++;
-          s.lastLand = 'center';
-          spawnLandParticles(bCenter, b.y, true);
-        } else {
-          s.lastLand = 'off';
-          s.combo = 0;
-        }
-
-        // Stack the block
-        s.stack.push({
-          x: b.x, y: b.y, w: b.w, h: b.h, color: b.color
-        });
+        // Chicken is in the air — block lands and joins the stack centered under the chicken
+        b.landed = true;
+        b.vx = 0;
+        b.x = ch.x - b.w / 2;
+        s.score++;
+        s.combo++;
+        s.lastLand = 'land';
+        spawnLandParticles(ch.x, b.y, true);
+        s.stack.push({ x: b.x, y: b.y, w: b.w, h: b.h, color: b.color });
         s.blocks.splice(i, 1);
-
         if (s.score >= WIN_SCORE) {
           gameOver(true);
           return;
@@ -442,30 +429,9 @@ function update() {
       }
     }
 
-    // Remove off-screen blocks
-    if (b.x > canvas.width + 100 || b.x + b.w < -100) {
+    // Remove blocks that have slid off the right
+    if (b.x > canvas.width + 100) {
       s.blocks.splice(i, 1);
-    }
-  }
-
-  // Chicken collision with moving blocks
-  for (let i = s.blocks.length - 1; i >= 0; i--) {
-    const b = s.blocks[i];
-    if (b.landed) continue;
-    if (ch.x + ch.w / 2 > b.x && ch.x - ch.w / 2 < b.x + b.w &&
-        ch.y + ch.h / 2 > b.y && ch.y - ch.h / 2 < b.y + b.h) {
-      if (ch.grounded) {
-        s.lives--;
-        s.lastLand = 'hit';
-        spawnLandParticles(ch.x, ch.y, false);
-        s.blocks.splice(i, 1);
-        if (s.lives <= 0) {
-          gameOver(false);
-          return;
-        }
-        ch.vy = JUMP_FORCE * 0.6;
-        ch.grounded = false;
-      }
     }
   }
 
