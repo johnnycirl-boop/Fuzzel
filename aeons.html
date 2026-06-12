@@ -42,6 +42,12 @@ header{
   padding:14px 22px 10px;
   border-bottom:1px solid var(--line);
 }
+#back-btn{
+  font-family:Cinzel,serif;font-size:12px;letter-spacing:.12em;text-decoration:none;
+  color:var(--gold);background:var(--ink2);border:1px solid #5c4a23;
+  padding:8px 14px;border-radius:3px;white-space:nowrap;
+}
+#back-btn:hover{background:#33270f;color:var(--gold-bright)}
 .brand h1{
   font-family:Cinzel,serif;font-weight:900;font-size:30px;letter-spacing:.18em;
   color:var(--gold);line-height:1;
@@ -198,6 +204,7 @@ aside h2::after{content:"";flex:1;height:1px;background:var(--line)}
 <body>
 
 <header>
+  <a id="back-btn" href="index.html">← BACK</a>
   <div class="brand"><h1>ÆONS</h1><span>a chronicle of one civilisation</span></div>
   <div id="timeline"></div>
   <div class="popchip">👥 <b id="popNow">4</b> / <span id="popCap">5</span></div>
